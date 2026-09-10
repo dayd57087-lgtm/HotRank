@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.HotRank" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:windowBackground">#FDFBFF</item>
+        <item name="android:windowBackground">#F7F5F7</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">true</item>
+        <!-- 顶部是深红渐变，状态栏图标必须用浅色，否则看不见 -->
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>

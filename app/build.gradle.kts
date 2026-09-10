@@ -11,8 +11,8 @@ android {
         applicationId = "com.minis.hotrank"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
     }
 
     buildTypes {
@@ -61,8 +61,13 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     // 显式声明，别依赖 material3 的传递依赖 —— 少一类 "unresolved reference: Icons" 事故
     implementation("androidx.compose.material:material-icons-core")
+    // 骨架屏的呼吸动画
+    implementation("androidx.compose.animation:animation")
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // 关键词订阅的后台定时检查（系统调度，不用自己保活）
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

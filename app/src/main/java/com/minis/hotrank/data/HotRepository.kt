@@ -3,6 +3,7 @@ package com.minis.hotrank.data
 import android.content.Context
 import com.minis.hotrank.model.HotItem
 import com.minis.hotrank.model.Platform
+import com.minis.hotrank.model.RankedEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -11,17 +12,22 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 data class HotFeed(
-    val merged: List<HotItem>,
-    val byPlatform: Map<Platform, List<HotItem>>,
+    val events: List<RankedEvent>,
     val failed: List<Platform>,
+    val onlineCount: Int,
     val updatedAt: Long,
 )
 
 /**
- * 缓存策略：
- *   1. 缓存 10 分钟内且非强制刷新 -> 直接读缓存
+ * 缓存 + 调度。
+ *
+ * 缓存按「平台原始列表」存，不存排序结果 —— 排序是纯计算，每次重新跑，
+ * 这样以后调算法参数不会让老缓存变成脏数据。
+ *
+ * 策略：
+ *   1. 缓存有效期内且非强制刷新 -> 直接用缓存
  *   2. 否则并发拉 6 个平台，成功就写缓存
- *   3. 拉取失败 -> 退回「过期缓存」（宁可能看旧数据，也不给白屏）
+ *   3. 拉取失败 -> 退回过期缓存（宁可能看旧数据，也不给白屏）
  */
 class HotRepository(context: Context) {
 
@@ -47,10 +53,9 @@ class HotRepository(context: Context) {
         }
 
         HotFeed(
-            // 混合流每个平台只取前 20：6 x 20 = 120 条，滚得完也不会变成流水账。
-            merged = interleave(byPlatform.values.map { it.take(MERGED_DEPTH) }),
-            byPlatform = byPlatform,
+            events = RankingEngine.rank(byPlatform),
             failed = failed,
+            onlineCount = byPlatform.size,
             updatedAt = updatedAt,
         )
     }
@@ -80,21 +85,6 @@ class HotRepository(context: Context) {
         return Slot(emptyList(), 0L)
     }
 
-    /**
-     * 各平台第 1 名 -> 各平台第 2 名 -> ... 交错合并。
-     * 不做热度归一化排序，因为「微博 180 万热度」和「知乎 300 万热度」本来就不是一个量纲，
-     * 强行混排出来的顺序看着科学其实是假的。
-     */
-    private fun interleave(lists: List<List<HotItem>>): List<HotItem> {
-        if (lists.isEmpty()) return emptyList()
-        val depth = lists.maxOf { it.size }
-        val out = ArrayList<HotItem>(lists.sumOf { it.size })
-        for (i in 0 until depth) {
-            for (list in lists) list.getOrNull(i)?.let { out += it }
-        }
-        return out
-    }
-
     private fun toJson(items: List<HotItem>): String {
         val array = JSONArray()
         items.forEach { item ->
@@ -103,7 +93,8 @@ class HotRepository(context: Context) {
                     .put("r", item.rank)
                     .put("t", item.title)
                     .put("u", item.url)
-                    .put("h", item.hot ?: "")
+                    .put("hl", item.hotLabel ?: "")
+                    .put("hn", item.rawHeat ?: 0.0)
             )
         }
         return array.toString()
@@ -118,12 +109,14 @@ class HotRepository(context: Context) {
                 val obj = array.getJSONObject(i)
                 val title = obj.optString("t")
                 if (title.isEmpty()) continue
+                val heat = obj.optDouble("hn", 0.0)
                 out += HotItem(
                     platform = platform,
                     rank = obj.optInt("r", i + 1),
                     title = title,
                     url = obj.optString("u"),
-                    hot = obj.optString("h").ifEmpty { null },
+                    hotLabel = obj.optString("hl").ifEmpty { null },
+                    rawHeat = if (heat > 0.0) heat else null,
                 )
             }
             out
@@ -132,6 +125,5 @@ class HotRepository(context: Context) {
 
     companion object {
         private const val TTL = 10 * 60 * 1000L
-        private const val MERGED_DEPTH = 20
     }
 }
