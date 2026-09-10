@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>详情页 + 左右滑动 · 设计方案</title>
+<style>
+  :root{
+    --cjk: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans CJK SC",
+          "Source Han Sans SC", "Microsoft YaHei", sans-serif;
+    /* 方案B 的调色板 */
+    --paper:#FBF9F5; --ink:#141210; --ink2:#3A342C; --muted:#9C9385;
+    --line:#E5DED2; --red:#C4342A; --chipbg:#EFEAE2;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  body{font-family:var(--cjk);background:#DEDCD8;padding:16px 8px 70px;
+    display:flex;flex-direction:column;align-items:center;gap:30px;}
+  .sec{width:100%;max-width:420px;display:flex;flex-direction:column;gap:11px;}
+  .lbl{font-size:13px;font-weight:800;color:#2A2A2E;letter-spacing:.3px;}
+  .lbl em{font-style:normal;font-weight:400;color:#8A8A92;font-size:11.5px;}
+  .note{font-size:11.5px;line-height:1.75;color:#5A5A63;background:#fff;
+    border-radius:10px;padding:11px 13px;border-left:3px solid #C9C9D0;}
+  .note b{color:#222;} .note .hi{color:#C4342A;font-weight:700;}
+  .phone{width:100%;background:var(--paper);color:var(--ink);border-radius:22px;
+    overflow:hidden;box-shadow:0 10px 28px rgba(0,0,0,.15);display:flex;
+    flex-direction:column;}
+  .sb{height:26px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 16px;font-size:10.5px;font-weight:600;flex:0 0 auto;color:var(--ink);}
+  .tabnum{font-variant-numeric:tabular-nums;}
+
+  /* ============ 通用：列表页（来自已选定的 B 方案）============ */
+  .hd{padding:6px 20px 13px;}
+  .kick{font-size:9.5px;font-weight:800;letter-spacing:2.2px;color:#B09A7A;}
+  h1{font-size:30px;font-weight:900;letter-spacing:-1.3px;line-height:1.06;margin-top:6px;}
+  .rule{height:2.5px;background:var(--ink);margin-top:11px;}
+  .hmeta{margin-top:8px;font-size:10.5px;color:#8C8378;display:flex;justify-content:space-between;}
+  .tabs{display:flex;gap:6px;padding:0 20px 12px;overflow-x:auto;flex:0 0 auto;
+    scrollbar-width:none;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{font-size:12px;padding:5px 12px;border-radius:3px;background:var(--chipbg);
+    color:#6B6259;white-space:nowrap;font-weight:700;flex:0 0 auto;}
+  .tab.on{background:var(--ink);color:var(--paper);}
+  .list{padding:0 20px 18px;}
+  .row{display:flex;gap:14px;padding:13px 0;border-top:1.5px solid var(--line);}
+  .rk{font-size:25px;font-weight:900;color:#D8CFC0;width:36px;line-height:.92;
+    letter-spacing:-1.4px;flex:0 0 auto;font-variant-numeric:tabular-nums;}
+  .row.top .rk{color:var(--red);}
+  .bd{flex:1;min-width:0;}
+  .ti{font-size:16px;font-weight:700;line-height:1.33;letter-spacing:-.3px;}
+  .sub{margin-top:7px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  .corr{background:var(--ink);color:var(--paper);font-size:10px;font-weight:800;
+    padding:2.5px 8px;border-radius:3px;letter-spacing:.3px;}
+  .plat{font-size:10px;color:var(--muted);font-weight:600;}
+  .heat{font-size:18px;font-weight:900;letter-spacing:-.7px;flex:0 0 auto;
+    padding-top:2px;font-variant-numeric:tabular-nums;}
+  .heat span{font-size:9px;font-weight:600;color:#B0A697;display:block;
+    text-align:right;margin-top:1px;letter-spacing:0;}
+
+  /* ============ 详情页 方向A：数据面板 ============ */
+  .dA{background:var(--paper);}
+  .dA .nav{display:flex;align-items:center;justify-content:space-between;
+    padding:4px 18px 10px;flex:0 0 auto;}
+  .dA .back{font-size:19px;font-weight:400;color:var(--ink2);}
+  .dA .navt{font-size:11px;font-weight:800;letter-spacing:1.8px;color:#B09A7A;}
+  .dA .body{padding:0 20px 20px;overflow:hidden;}
+  .dA h2{font-size:22px;font-weight:900;letter-spacing:-.7px;line-height:1.24;}
+  .dA .tags{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;}
+  .dA .tl{font-size:10px;color:var(--muted);font-weight:700;}
+  .dA .score{margin-top:15px;background:var(--ink);color:var(--paper);
+    border-radius:10px;padding:13px 15px;display:flex;align-items:center;gap:14px;}
+  .dA .score .big{font-size:38px;font-weight:900;letter-spacing:-2px;line-height:1;
+    font-variant-numeric:tabular-nums;}
+  .dA .score .info{flex:1;}
+  .dA .score .info b{font-size:12.5px;font-weight:800;display:block;letter-spacing:.2px;}
+  .dA .score .info small{font-size:10px;color:#A9A196;line-height:1.5;display:block;margin-top:3px;}
+  .dA .sechd{margin:17px 0 8px;font-size:10px;font-weight:800;letter-spacing:1.6px;
+    color:#B09A7A;display:flex;justify-content:space-between;align-items:baseline;}
+  .dA .sechd i{font-style:normal;font-size:10px;letter-spacing:0;color:var(--muted);font-weight:600;}
+  .dA .prow{display:flex;align-items:center;gap:11px;padding:10px 0;
+    border-top:1.5px solid var(--line);}
+  .dA .prow:last-of-type{border-bottom:1.5px solid var(--line);}
+  .dA .pname{font-size:13.5px;font-weight:800;width:52px;flex:0 0 auto;}
+  .dA .prank{font-size:11px;font-weight:700;color:var(--muted);width:46px;flex:0 0 auto;
+    font-variant-numeric:tabular-nums;}
+  .dA .pheat{flex:1;font-size:11px;color:var(--ink2);font-variant-numeric:tabular-nums;}
+  .dA .go{font-size:11px;font-weight:800;color:var(--paper);background:var(--ink);
+    padding:5px 11px;border-radius:5px;flex:0 0 auto;}
+  .dA .go.soft{background:var(--chipbg);color:#6B6259;}
+  .dA .abstract{margin-top:15px;font-size:12.5px;line-height:1.72;color:var(--ink2);}
+  .dA .abstract .k{font-weight:900;color:var(--ink);}
+
+  /* ============ 详情页 方向B：内容阅读 ============ */
+  .dB{background:var(--paper);}
+  .dB .hero{height:150px;background:linear-gradient(135deg,#8C7B63,#5C5145);
+    position:relative;flex:0 0 auto;display:flex;align-items:flex-start;padding:10px 16px;}
+  .dB .hero .x{width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.42);
+    color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;}
+  .dB .hero .src{position:absolute;left:16px;bottom:10px;font-size:9.5px;color:rgba(255,255,255,.8);
+    font-weight:700;letter-spacing:.4px;}
+  .dB .body{padding:15px 20px 20px;overflow:hidden;}
+  .dB h2{font-size:21px;font-weight:900;letter-spacing:-.6px;line-height:1.28;}
+  .dB .meta{margin-top:9px;font-size:10.5px;color:var(--muted);display:flex;
+    align-items:center;gap:7px;font-weight:600;}
+  .dB .meta .corr{font-size:9.5px;padding:2px 7px;}
+  .dB .txt{margin-top:13px;font-size:13px;line-height:1.82;color:var(--ink2);}
+  .dB .txt .lead{font-weight:800;color:var(--ink);}
+  .dB .bar{margin-top:15px;background:#F2EDE4;border-radius:10px;padding:11px 13px;
+    display:flex;align-items:center;gap:12px;}
+  .dB .bar .big{font-size:26px;font-weight:900;letter-spacing:-1.2px;line-height:1;
+    color:var(--red);font-variant-numeric:tabular-nums;}
+  .dB .bar .t{font-size:10.5px;color:#7C7264;line-height:1.55;font-weight:600;flex:1;}
+  .dB .plats{margin-top:16px;display:flex;flex-direction:column;gap:7px;}
+  .dB .pbtn{display:flex;align-items:center;gap:10px;background:var(--ink);
+    color:var(--paper);border-radius:9px;padding:11px 14px;}
+  .dB .pbtn.ghost{background:transparent;border:1.5px solid var(--line);
+    color:var(--ink);}
+  .dB .pbtn .pn{font-size:13px;font-weight:800;flex:1;}
+  .dB .pbtn .pd{font-size:10px;opacity:.62;font-weight:600;}
+  .dB .pbtn .ar{font-size:13px;opacity:.55;}
+
+  /* ============ 左右滑动 demo ============ */
+  .swipewrap{width:100%;border-radius:22px;overflow:hidden;
+    box-shadow:0 10px 28px rgba(0,0,0,.15);background:var(--paper);}
+  .swipetabs{display:flex;gap:6px;padding:10px 16px 9px;overflow-x:auto;
+    scrollbar-width:none;border-bottom:1.5px solid var(--line);}
+  .swipetabs::-webkit-scrollbar{display:none;}
+  .pager{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
+    scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;}
+  .pager::-webkit-scrollbar{display:none;}
+  .page{flex:0 0 100%;scroll-snap-align:start;padding:0 20px 16px;}
+  .phd{padding:12px 0 8px;display:flex;align-items:baseline;gap:8px;}
+  .phd b{font-size:17px;font-weight:900;letter-spacing:-.4px;}
+  .phd span{font-size:10px;color:var(--muted);font-weight:600;}
+  .srow{display:flex;gap:12px;padding:11px 0;border-top:1.5px solid var(--line);}
+  .srow .rk{font-size:21px;width:30px;}
+  .srow .ti{font-size:14.5px;}
+  .dots{display:flex;justify-content:center;gap:5px;padding:9px 0 3px;}
+  .dot{width:5px;height:5px;border-radius:50%;background:#D8CFC0;}
+  .dot.on{background:var(--ink);width:14px;border-radius:3px;}
+  .swipehint{text-align:center;font-size:10.5px;color:#8A8A92;padding-bottom:11px;}
+</style>
+</head>
+<body>
+
+<!-- ============ 0. 入口：列表页（B 方案，点击后进详情）============ -->
+<div class="sec">
+  <div class="lbl">起点 · 列表页 <em>（你选的 B 方案，点任意一条进入详情）</em></div>
+  <div class="phone">
+    <div class="sb"><span>9:41</span><span>▮▮▮ ⌁ ▰</span></div>
+    <div class="hd">
+      <div class="kick">HOT SEARCH AGGREGATE</div>
+      <h1>热榜聚合</h1>
+      <div class="rule"></div>
+      <div class="hmeta"><span>6 站在线 · 14:32 更新</span><span>8 个多站同榜</span></div>
+    </div>
+    <div class="tabs">
+      <div class="tab on">全部</div><div class="tab">微博</div><div class="tab">知乎</div>
+      <div class="tab">百度</div><div class="tab">头条</div><div class="tab">抖音</div><div class="tab">B站</div>
+    </div>
+    <div class="list">
+      <div class="row top">
+        <div class="rk">1</div>
+        <div class="bd"><div class="ti">青岛货轮火灾25人遇难</div>
+          <div class="sub"><span class="corr">3 站同榜</span><span class="plat">微博 · 百度 · 头条</span></div></div>
+        <div class="heat">100<span>热度</span></div>
+      </div>
+      <div class="row top">
+        <div class="rk">2</div>
+        <div class="bd"><div class="ti">中国女篮不敌法国无缘世界杯四强</div>
+          <div class="sub"><span class="corr">4 站同榜</span><span class="plat">抖音 · 百度 · 头条</span></div></div>
+        <div class="heat">97<span>热度</span></div>
+      </div>
+      <div class="row">
+        <div class="rk">3</div>
+        <div class="bd"><div class="ti">赵昭仪录节目突发哮喘</div>
+          <div class="sub"><span class="corr">2 站同榜</span><span class="plat">百度 · 微博</span></div></div>
+        <div class="heat">82<span>热度</span></div>
+      </div>
+      <div class="row">
+        <div class="rk">4</div>
+        <div class="bd"><div class="ti">演员王新昉在出租屋去世</div>
+          <div class="sub"><span class="corr">2 站同榜</span><span class="plat">百度 · 头条</span></div></div>
+        <div class="heat">80<span>热度</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 1. 详情页 方向A ============ -->
+<div class="sec">
+  <div class="lbl">详情页 · 方向 A「数据面板」<em>— 主打各平台对比</em></div>
+  <div class="phone dA">
+    <div class="sb"><span>9:41</span><span>▮▮▮ ⌁ ▰</span></div>
+    <div class="nav"><span class="back">‹</span><span class="navt">事件详情</span><span style="width:19px"></span></div>
+    <div class="body">
+      <h2>青岛货轮火灾25人遇难</h2>
+      <div class="tags">
+        <span class="tl">微博 #2</span><span class="tl">百度 #2</span>
+        <span class="tl">头条 #1</span><span class="tl">· 3 站同榜</span>
+      </div>
+
+      <div class="score">
+        <div class="big">100</div>
+        <div class="info">
+          <b>综合热度 · 全榜第 1</b>
+          <small>= 平台权重 × (0.6×热度分 + 0.4×名次分) × 同榜加成 1.30×</small>
+        </div>
+      </div>
+
+      <div class="sechd"><span>各站表现</span><i>点右侧按钮去对应 App</i></div>
+
+      <div class="prow">
+        <span class="pname">微博</span><span class="prank">第 2 名</span>
+        <span class="pheat">183.5万</span><span class="go">打开</span>
+      </div>
+      <div class="prow">
+        <span class="pname">百度</span><span class="prank">第 2 名</span>
+        <span class="pheat">790.5万</span><span class="go">打开</span>
+      </div>
+      <div class="prow">
+        <span class="pname">头条</span><span class="prank">第 1 名</span>
+        <span class="pheat">未提供</span><span class="go soft">搜索</span>
+      </div>
+
+      <div class="sechd" style="margin-top:15px"><span>摘要</span><i>来源：百度</i></div>
+      <div class="abstract"><span class="k">9月10日11时15分许</span>，山东青岛市北海造船有限公司一艘外籍货轮靠港维修期间起火，造成重大人员伤亡。船上共有 42 人，其中 12 人安全撤出；5 人受伤送医…</div>
+    </div>
+  </div>
+  <div class="note">
+    <b>核心思路：</b>把「各站表现」做成主体 —— 这是<b>只有聚合榜才有的数据</b>，
+    单看任何一个平台你都看不到。<br>
+    每行末尾的按钮直接跳对应 App。<span class="hi">注意「打开」和「搜索」的区别</span>：
+    有内容 ID 的平台能精确跳转，只能拿到关键词的只能跳到搜索结果页（见下方说明）。
+  </div>
+</div>
+
+<!-- ============ 2. 详情页 方向B ============ -->
+<div class="sec">
+  <div class="lbl">详情页 · 方向 B「内容阅读」<em>— 主打摘要和配图</em></div>
+  <div class="phone dB">
+    <div class="sb" style="color:#fff;position:absolute;z-index:2;width:100%">
+      <span>9:41</span><span>▮▮▮ ⌁ ▰</span></div>
+    <div class="hero">
+      <div class="x">✕</div>
+      <div class="src">配图来源：百度热搜</div>
+    </div>
+    <div class="body">
+      <h2>青岛货轮火灾25人遇难</h2>
+      <div class="meta"><span class="corr">3 站同榜</span><span>微博 · 百度 · 头条</span><span>· 14:32</span></div>
+      <div class="txt"><span class="lead">9月10日11时15分许</span>，山东青岛市北海造船有限公司一艘外籍货轮靠港维修期间起火，造成重大人员伤亡。船上共有 42 人，其中 12 人安全撤出；5 人受伤送医（目前生命体征平稳）；2 人失联…</div>
+
+      <div class="bar">
+        <div class="big">100</div>
+        <div class="t">综合热度，全榜第 1<br>在 3 个平台同时上榜</div>
+      </div>
+
+      <div class="plats">
+        <div class="pbtn"><span class="pn">在微博打开</span><span class="pd">第 2 名 · 183.5万</span><span class="ar">›</span></div>
+        <div class="pbtn ghost"><span class="pn">在百度打开</span><span class="pd">第 2 名 · 790.5万</span><span class="ar">›</span></div>
+        <div class="pbtn ghost"><span class="pn">在头条打开</span><span class="pd">第 1 名</span><span class="ar">›</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="note">
+    <b>核心思路：</b>像一个新闻阅读器 —— 先给图、再给内容、最后给跳转入口。<br>
+    代价是<b>「各平台对比」被压到最后</b>了，而那是聚合榜最独有的信息。<br>
+    <b>我的判断：A 更适合这个 App。</b>B 好看，但把真正的差异化数据埋掉了。
+  </div>
+</div>
+
+<!-- ============ 3. 左右滑动 ============ -->
+<div class="sec">
+  <div class="lbl">左右滑动切榜 <em>— 这个可以真的滑，试试</em></div>
+  <div class="swipewrap">
+    <div class="swipetabs">
+      <div class="tab on">全部</div><div class="tab">微博</div><div class="tab">知乎</div>
+      <div class="tab">百度</div><div class="tab">头条</div><div class="tab">抖音</div><div class="tab">B站</div>
+    </div>
+    <div class="pager" id="pager">
+      <div class="page">
+        <div class="phd"><b>综合榜</b><span>按综合热度排序 · 120 条</span></div>
+        <div class="srow"><div class="rk">1</div><div class="bd"><div class="ti">青岛货轮火灾25人遇难</div>
+          <div class="sub"><span class="corr">3 站同榜</span></div></div></div>
+        <div class="srow"><div class="rk">2</div><div class="bd"><div class="ti">中国女篮不敌法国无缘世界杯四强</div>
+          <div class="sub"><span class="corr">4 站同榜</span></div></div></div>
+        <div class="srow"><div class="rk">3</div><div class="bd"><div class="ti">赵昭仪录节目突发哮喘</div>
+          <div class="sub"><span class="corr">2 站同榜</span></div></div></div>
+        <div class="srow"><div class="rk">4</div><div class="bd"><div class="ti">演员王新昉在出租屋去世</div></div></div>
+        <div class="srow"><div class="rk">5</div><div class="bd"><div class="ti">人为什么要读书最好的答案</div></div></div>
+      </div>
+      <div class="page">
+        <div class="phd"><b>微博热搜</b><span>该平台原始名次 · 50 条</span></div>
+        <div class="srow"><div class="rk">1</div><div class="bd"><div class="ti">青岛货轮火灾造成重大人员伤亡</div>
+          <div class="sub"><span class="plat">183.5万</span><span class="corr">上综合榜第1</span></div></div></div>
+        <div class="srow"><div class="rk">2</div><div class="bd"><div class="ti">青岛货轮火灾25人遇难</div>
+          <div class="sub"><span class="plat">137.0万</span></div></div></div>
+        <div class="srow"><div class="rk">3</div><div class="bd"><div class="ti">苹果CEO 张铁牛</div>
+          <div class="sub"><span class="plat">137.0万</span></div></div></div>
+        <div class="srow"><div class="rk">4</div><div class="bd"><div class="ti">我国成功发射一箭六星</div></div></div>
+        <div class="srow"><div class="rk">5</div><div class="bd"><div class="ti">建议大家把内裤袜子丢洗衣机洗</div></div></div>
+      </div>
+      <div class="page">
+        <div class="phd"><b>知乎热榜</b><span>该平台原始名次 · 30 条</span></div>
+        <div class="srow"><div class="rk">1</div><div class="bd"><div class="ti">如何评价苹果折叠屏手机 iPhone Duo？</div>
+          <div class="sub"><span class="plat">3504万热度</span></div></div></div>
+        <div class="srow"><div class="rk">2</div><div class="bd"><div class="ti">如何评价霍奇猜想疑似被 OpenAI 攻克？</div></div></div>
+        <div class="srow"><div class="rk">3</div><div class="bd"><div class="ti">如何看待勇哥餐饮被指让员工干 17 个小时？</div></div></div>
+        <div class="srow"><div class="rk">4</div><div class="bd"><div class="ti">为什么现在年轻人越来越不想结婚？</div></div></div>
+        <div class="srow"><div class="rk">5</div><div class="bd"><div class="ti">山东青岛货轮火灾事故已造成 25 人遇难</div></div></div>
+      </div>
+      <div class="page">
+        <div class="phd"><b>百度热搜</b><span>该平台原始名次 · 50 条</span></div>
+        <div class="srow"><div class="rk">1</div><div class="bd"><div class="ti">大国风范 时代担当</div>
+          <div class="sub"><span class="plat">790.5万</span></div></div></div>
+        <div class="srow"><div class="rk">2</div><div class="bd"><div class="ti">青岛货轮火灾事故致25人遇难</div>
+          <div class="sub"><span class="plat">790.5万</span></div></div></div>
+        <div class="srow"><div class="rk">3</div><div class="bd"><div class="ti">习近平对青岛货轮火灾作出重要指示</div></div></div>
+        <div class="srow"><div class="rk">4</div><div class="bd"><div class="ti">中国女篮不敌法国 无缘世界杯四强</div></div></div>
+        <div class="srow"><div class="rk">5</div><div class="bd"><div class="ti">看不见的贸易为什么"跑"得更快</div></div></div>
+      </div>
+      <div class="page">
+        <div class="phd"><b>头条热榜</b><span>该平台原始名次 · 50 条</span></div>
+        <div class="srow"><div class="rk">1</div><div class="bd"><div class="ti">青岛货轮火灾25人遇难</div>
+          <div class="sub"><span class="corr">上综合榜第1</span></div></div></div>
+        <div class="srow"><div class="rk">2</div><div class="bd"><div class="ti">中国女篮无缘世界杯4强</div></div></div>
+        <div class="srow"><div class="rk">3</div><div class="bd"><div class="ti">外交部回应印度拟对小米启动调查</div></div></div>
+        <div class="srow"><div class="rk">4</div><div class="bd"><div class="ti">罗杰斯：将中国股票留给女儿们</div></div></div>
+        <div class="srow"><div class="rk">5</div><div class="bd"><div class="ti">苹果iPhone 18 Pro/Max 售价公布</div></div></div>
+      </div>
+      <div class="page">
+        <div class="phd"><b>抖音热榜</b><span>该平台原始名次 · 50 条</span></div>
+        <div class="srow"><div class="rk">1</div><div class="bd"><div class="ti">中国女篮不敌法国无缘世界杯四强</div>
+          <div class="sub"><span class="plat">1187.1万</span><span class="corr">上综合榜第2</span></div></div></div>
+        <div class="srow"><div class="rk">2</div><div class="bd"><div class="ti">今天是教师节</div>
+          <div class="sub"><span class="plat">1187.1万</span></div></div></div>
+        <div class="srow"><div class="rk">3</div><div class="bd"><div class="ti">油价或迎二连涨</div></div></div>
+        <div class="srow"><div class="rk">4</div><div class="bd"><div class="ti">这是我送给爱师的花花呀</div></div></div>
+        <div class="srow"><div class="rk">5</div><div class="bd"><div class="ti">金融强国建设十五五规划出台</div></div></div>
+      </div>
+      <div class="page">
+        <div class="phd"><b>B站热榜</b><span>该平台原始名次 · 100 条</span></div>
+        <div class="srow"><div class="rk">1</div><div class="bd"><div class="ti">刘慈欣原著授权｜《流浪地球：望日》首支预告片</div>
+          <div class="sub"><span class="plat">139.6万播放</span></div></div></div>
+        <div class="srow"><div class="rk">2</div><div class="bd"><div class="ti">我来同你玩丨二洲年快乐</div>
+          <div class="sub"><span class="plat">471.2万播放</span></div></div></div>
+        <div class="srow"><div class="rk">3</div><div class="bd"><div class="ti">「小白」苹果iPhone18 Pro/Max体验：尽善尽美？</div>
+          <div class="sub"><span class="corr">上综合榜</span></div></div></div>
+        <div class="srow"><div class="rk">4</div><div class="bd"><div class="ti">当我把物理课本做成游戏</div></div></div>
+        <div class="srow"><div class="rk">5</div><div class="bd"><div class="ti">全网最详细的苹果折叠屏上手</div></div></div>
+      </div>
+    </div>
+    <div class="dots">
+      <div class="dot on"></div><div class="dot"></div><div class="dot"></div>
+      <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+    <div class="swipehint">← 左右滑动试试 · 共 7 页 →</div>
+  </div>
+  <div class="note">
+    <b>一个必须你拍板的语义问题：</b><br>
+    点「微博」页，你想看到的是 ——<br>
+    <b>① 微博自己的榜</b>（第 1 名就是微博第 1 名，<span class="hi">我推荐这个</span>，
+    符合"我想看看微博在聊什么"的直觉）<br>
+    <b>② 上了综合榜的微博条目</b>（按综合热度排，会和微博自己的名次不一致）<br>
+    原型里我做的是 <b>①</b>，并额外标了「上综合榜第N」做衔接。
+  </div>
+</div>
+
+<div class="sec">
+  <div class="note" style="border-left-color:#C4342A">
+    <b style="font-size:12.5px">⚠️ 跳转 App 的真相（必须先说清）</b><br><br>
+    我查了 6 个平台的返回数据，<b>它们给的跳转信息完整度完全不同</b>：<br><br>
+    <b>能精确跳到那条内容的（有 ID）：</b><br>
+    · 知乎 → <code>question/2081482603501183466</code>　· B站 → <code>BV1tSYx66EvP</code><br>
+    · 头条 → <code>trending/7683415450185220150</code><br><br>
+    <b>只能跳到搜索结果的（只有关键词）：</b><br>
+    · 微博 → 话题名　· 百度 → 搜索词　· 抖音 → 搜索词<br><br>
+    所以按钮会分两种状态：<span class="hi">「打开」（精确）</span> 和
+    <span class="hi">「搜索」（只能到结果页）</span>。我不想糊弄成一样。<br><br>
+    另外：<b>我没法验证你手机上装了哪些 App</b>（Shizuku 没运行，查不了）。
+    所以方案会做成<b>三层降级</b>：App 内精确页 → App 内搜索 → 浏览器，
+    代码里用 <code>resolveActivity</code> 探测，装了就跳、没装就降级，不会弹选择框。
+  </div>
+</div>
+
+<script>
+(function(){
+  var pager=document.getElementById('pager');
+  var dots=document.querySelectorAll('.dots .dot');
+  var tabs=document.querySelectorAll('.swipetabs .tab');
+  pager.addEventListener('scroll',function(){
+    var i=Math.round(pager.scrollLeft/pager.clientWidth);
+    dots.forEach(function(d,k){d.className='dot'+(k===i?' on':'');});
+    tabs.forEach(function(t,k){t.className='tab'+(k===i?' on':'');});
+  },{passive:true});
+  tabs.forEach(function(t,k){
+    t.addEventListener('click',function(){
+      pager.scrollTo({left:k*pager.clientWidth,behavior:'smooth'});
+    });
+  });
+})();
+</script>
+</body>
+</html>

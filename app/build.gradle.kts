@@ -11,8 +11,8 @@ android {
         applicationId = "com.minis.hotrank"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
     }
 
     buildTypes {
@@ -65,6 +65,9 @@ dependencies {
     implementation("androidx.compose.animation:animation")
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // 详情页配图。百度/B站/抖音会返回图片地址，微博头条知乎没有 —— 没有时退化成渐变底
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     // 关键词订阅的后台定时检查（系统调度，不用自己保活）
     implementation("androidx.work:work-runtime-ktx:2.9.1")

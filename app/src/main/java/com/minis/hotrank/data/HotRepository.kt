@@ -13,21 +13,20 @@ import org.json.JSONObject
 
 data class HotFeed(
     val events: List<RankedEvent>,
+    val byPlatform: Map<Platform, List<HotItem>>,
     val failed: List<Platform>,
     val onlineCount: Int,
     val updatedAt: Long,
+    /** "平台|标题" -> 该条在综合榜上的名次，用于原始榜里的「上综合榜第N」衔接标记。 */
+    val crossLink: Map<String, Int>,
 )
 
 /**
  * 缓存 + 调度。
  *
  * 缓存按「平台原始列表」存，不存排序结果 —— 排序是纯计算，每次重新跑，
- * 这样以后调算法参数不会让老缓存变成脏数据。
- *
- * 策略：
- *   1. 缓存有效期内且非强制刷新 -> 直接用缓存
- *   2. 否则并发拉 6 个平台，成功就写缓存
- *   3. 拉取失败 -> 退回过期缓存（宁可能看旧数据，也不给白屏）
+ * 这样以后调算法参数不会让老缓存变成脏数据。extra 字段一并缓存，
+ * 否则详情页会没摘要没图。
  */
 class HotRepository(context: Context) {
 
@@ -52,19 +51,35 @@ class HotRepository(context: Context) {
             if (slot.updatedAt > updatedAt) updatedAt = slot.updatedAt
         }
 
+        val events = RankingEngine.rank(byPlatform)
+
+        // 综合榜名次反查表：让用户在某个平台的原始榜里，也能看到这条"在两个榜上都出现了"
+        val crossLink = HashMap<String, Int>(events.size * 2)
+        events.forEachIndexed { index, event ->
+            event.members.forEach { member ->
+                crossLink[key(member.platform, member.title)] = index + 1
+            }
+        }
+
         HotFeed(
-            events = RankingEngine.rank(byPlatform),
+            events = events,
+            byPlatform = byPlatform,
             failed = failed,
             onlineCount = byPlatform.size,
             updatedAt = updatedAt,
+            crossLink = crossLink,
         )
     }
+
+    fun crossLinkKey(platform: Platform, title: String) = key(platform, title)
+
+    private fun key(platform: Platform, title: String) = platform.apiId + "|" + title
 
     private class Slot(val items: List<HotItem>, val updatedAt: Long)
 
     private fun loadOne(platform: Platform, force: Boolean): Slot {
-        val listKey = "list_" + platform.apiId
-        val timeKey = "ts_" + platform.apiId
+        val listKey = "list2_" + platform.apiId
+        val timeKey = "ts2_" + platform.apiId
         val cachedAt = prefs.getLong(timeKey, 0L)
 
         if (!force && prefs.contains(listKey) && System.currentTimeMillis() - cachedAt < TTL) {
@@ -88,6 +103,8 @@ class HotRepository(context: Context) {
     private fun toJson(items: List<HotItem>): String {
         val array = JSONArray()
         items.forEach { item ->
+            val stats = JSONObject()
+            item.stats.forEach { (k, v) -> stats.put(k, v) }
             array.put(
                 JSONObject()
                     .put("r", item.rank)
@@ -95,6 +112,10 @@ class HotRepository(context: Context) {
                     .put("u", item.url)
                     .put("hl", item.hotLabel ?: "")
                     .put("hn", item.rawHeat ?: 0.0)
+                    .put("s", item.summary ?: "")
+                    .put("i", item.image ?: "")
+                    .put("c", item.contentId ?: "")
+                    .put("st", stats)
             )
         }
         return array.toString()
@@ -109,6 +130,12 @@ class HotRepository(context: Context) {
                 val obj = array.getJSONObject(i)
                 val title = obj.optString("t")
                 if (title.isEmpty()) continue
+
+                val stats = LinkedHashMap<String, String>()
+                obj.optJSONObject("st")?.let { st ->
+                    st.keys().forEach { k -> stats[k] = st.optString(k) }
+                }
+
                 val heat = obj.optDouble("hn", 0.0)
                 out += HotItem(
                     platform = platform,
@@ -117,6 +144,10 @@ class HotRepository(context: Context) {
                     url = obj.optString("u"),
                     hotLabel = obj.optString("hl").ifEmpty { null },
                     rawHeat = if (heat > 0.0) heat else null,
+                    summary = obj.optString("s").ifEmpty { null },
+                    image = obj.optString("i").ifEmpty { null },
+                    contentId = obj.optString("c").ifEmpty { null },
+                    stats = stats,
                 )
             }
             out

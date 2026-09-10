@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>热榜聚合 · UI 方案对比</title>
+<style>
+  :root{
+    --font-cjk: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans CJK SC",
+                "Source Han Sans SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  body{
+    font-family:var(--font-cjk);
+    background:#E9E9EC;
+    padding:18px 10px 60px;
+    display:flex;flex-direction:column;align-items:center;gap:34px;
+  }
+  .section{width:100%;display:flex;flex-direction:column;align-items:center;gap:12px;}
+  .label{font-size:13px;font-weight:700;color:#333;letter-spacing:.5px;}
+  .label span{font-weight:400;color:#8A8A92;}
+  .note{
+    max-width:390px;font-size:11.5px;line-height:1.7;color:#66666E;
+    background:#fff;border-radius:10px;padding:10px 13px;
+    border-left:3px solid #C9C9D0;
+  }
+  .note b{color:#222;}
+  .phone{
+    width:390px;max-width:100%;height:800px;border-radius:26px;overflow:hidden;
+    box-shadow:0 12px 34px rgba(0,0,0,.16), 0 2px 6px rgba(0,0,0,.07);
+    display:flex;flex-direction:column;position:relative;
+  }
+  .scroll{flex:1;overflow:hidden;position:relative;}
+  .statusbar{
+    height:30px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 18px;font-size:11px;font-weight:600;flex:0 0 auto;
+  }
+  .tabular{font-variant-numeric:tabular-nums;}
+
+  /* ============================================================
+     方案 A —— 极简克制
+     ============================================================ */
+  .A{background:#FFFFFF;color:#111114;}
+  .A .statusbar{color:#111114;}
+  .A .hd{padding:10px 20px 14px;}
+  .A .hd h1{font-size:27px;font-weight:800;letter-spacing:-.6px;}
+  .A .hd .meta{margin-top:5px;font-size:11.5px;color:#9A9AA2;}
+  .A .meta .dot{display:inline-block;width:3px;height:3px;border-radius:50%;
+    background:#D0D0D6;vertical-align:middle;margin:0 6px;}
+  .A .tabs{display:flex;gap:20px;padding:0 20px;border-bottom:1px solid #F0F0F3;
+    overflow:hidden;flex:0 0 auto;}
+  .A .tab{padding:9px 0 10px;font-size:14px;color:#9A9AA2;position:relative;white-space:nowrap;}
+  .A .tab.on{color:#111114;font-weight:700;}
+  .A .tab.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;
+    background:#111114;border-radius:2px;}
+  .A .list{padding:4px 0 0;}
+  .A .row{display:flex;gap:14px;padding:13px 20px 13px 17px;position:relative;
+    border-bottom:1px solid #F4F4F6;}
+  .A .row.hot::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;
+    background:#FF5A1F;border-radius:0 3px 3px 0;}
+  .A .rk{font-size:16px;font-weight:400;color:#C2C2C9;width:20px;text-align:center;
+    padding-top:2px;font-variant-numeric:tabular-nums;}
+  .A .row:nth-child(1) .rk{color:#FF5A1F;font-weight:700;}
+  .A .bd{flex:1;min-width:0;}
+  .A .ti{font-size:15.5px;font-weight:500;line-height:1.42;color:#111114;
+    letter-spacing:-.1px;}
+  .A .sub{margin-top:6px;font-size:11px;color:#A8A8B0;display:flex;align-items:center;gap:6px;}
+  .A .corr{color:#FF5A1F;font-weight:700;}
+  .A .heat{font-size:13px;color:#B8B8C0;font-variant-numeric:tabular-nums;
+    padding-top:3px;flex:0 0 auto;}
+  .A .row:nth-child(1) .heat{color:#111114;font-weight:700;}
+
+  /* ============================================================
+     方案 B —— 编辑杂志
+     ============================================================ */
+  .B{background:#FBF9F5;color:#141210;}
+  .B .statusbar{color:#141210;}
+  .B .hd{padding:8px 22px 16px;}
+  .B .hd .kick{font-size:10px;font-weight:800;letter-spacing:2.4px;color:#B09A7A;
+    text-transform:uppercase;}
+  .B .hd h1{font-size:33px;font-weight:900;letter-spacing:-1.4px;line-height:1.06;
+    margin-top:7px;}
+  .B .hd .rule{height:2.5px;background:#141210;margin-top:12px;width:100%;}
+  .B .hd .meta{margin-top:9px;font-size:11px;color:#8C8378;display:flex;
+    justify-content:space-between;letter-spacing:.3px;}
+  .B .tabs{display:flex;gap:7px;padding:0 22px 14px;overflow:hidden;flex:0 0 auto;}
+  .B .tab{font-size:12.5px;padding:6px 13px;border-radius:3px;background:#EFEAE2;
+    color:#6B6259;white-space:nowrap;font-weight:600;}
+  .B .tab.on{background:#141210;color:#FBF9F5;}
+  .B .list{padding:0 22px;}
+  .B .row{display:flex;gap:15px;padding:15px 0;border-top:1.5px solid #E5DED2;}
+  .B .row:first-child{border-top:none;}
+  .B .rk{font-size:27px;font-weight:900;color:#D8CFC0;width:38px;
+    line-height:.92;letter-spacing:-1.5px;font-variant-numeric:tabular-nums;flex:0 0 auto;}
+  .B .row:nth-child(1) .rk{color:#C4342A;}
+  .B .bd{flex:1;min-width:0;}
+  .B .ti{font-size:16.5px;font-weight:700;line-height:1.34;letter-spacing:-.35px;}
+  .B .sub{margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .B .corr{background:#141210;color:#FBF9F5;font-size:10.5px;font-weight:800;
+    padding:3px 9px;border-radius:3px;letter-spacing:.4px;}
+  .B .plat{font-size:10.5px;color:#9C9385;font-weight:600;letter-spacing:.2px;}
+  .B .heat{font-size:19px;font-weight:900;letter-spacing:-.8px;flex:0 0 auto;
+    padding-top:2px;font-variant-numeric:tabular-nums;}
+  .B .heat span{font-size:9.5px;font-weight:600;color:#B0A697;letter-spacing:0;
+    display:block;text-align:right;margin-top:1px;}
+
+  /* ============================================================
+     方案 C —— 深色沉稳
+     ============================================================ */
+  .C{background:#0D0D0F;color:#EDEDF0;}
+  .C .statusbar{color:#EDEDF0;}
+  .C .hd{padding:10px 18px 14px;}
+  .C .hd h1{font-size:22px;font-weight:700;letter-spacing:-.3px;}
+  .C .hd .meta{margin-top:4px;font-size:11px;color:#71717C;display:flex;
+    align-items:center;gap:7px;}
+  .C .pill{background:#202026;border-radius:20px;padding:2.5px 9px;font-size:10px;
+    color:#A9A9B4;font-weight:600;}
+  .C .pill.amber{background:rgba(232,163,61,.16);color:#E8A33D;}
+  .C .tabs{display:flex;gap:7px;padding:0 18px 12px;overflow:hidden;flex:0 0 auto;}
+  .C .tab{font-size:12.5px;padding:6px 13px;border-radius:20px;background:#1A1A1F;
+    color:#8A8A95;white-space:nowrap;font-weight:500;}
+  .C .tab.on{background:#EDEDF0;color:#0D0D0F;font-weight:700;}
+  .C .list{padding:0 12px;}
+  .C .row{display:flex;gap:12px;padding:13px 14px;background:#151519;
+    border-radius:14px;margin-bottom:7px;}
+  .C .rk{width:22px;text-align:center;font-size:14px;font-weight:600;color:#5A5A66;
+    padding-top:2px;font-variant-numeric:tabular-nums;flex:0 0 auto;}
+  .C .row:nth-child(1) .rk{color:#E8A33D;}
+  .C .bd{flex:1;min-width:0;}
+  .C .ti{font-size:15px;font-weight:500;line-height:1.4;color:#EDEDF0;}
+  .C .sub{margin-top:7px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  .C .corr{font-size:10px;font-weight:700;color:#E8A33D;
+    background:rgba(232,163,61,.14);padding:2.5px 8px;border-radius:20px;
+    display:inline-flex;align-items:center;gap:4px;}
+  .C .corr i{width:4px;height:4px;border-radius:50%;background:#E8A33D;
+    display:inline-block;}
+  .C .plat{font-size:10.5px;color:#6E6E7A;}
+  .C .heat{font-size:13px;font-weight:700;color:#6E6E7A;flex:0 0 auto;
+    font-variant-numeric:tabular-nums;padding-top:2px;}
+  .C .row:nth-child(1) .heat{color:#EDEDF0;}
+  .C .row:nth-child(2) .heat{color:#EDEDF0;}
+</style>
+</head>
+<body>
+
+<!-- ================= 方案 A ================= -->
+<div class="section">
+  <div class="label">方案 A · 极简克制 <span>— 白底 / 单一强调色 / 细分割线</span></div>
+
+  <div class="phone A">
+    <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁ ▰</span></div>
+    <div class="scroll">
+      <div class="hd">
+        <h1>热榜聚合</h1>
+        <div class="meta">6 站在线<span class="dot"></span>14:32 更新<span class="dot"></span>8 个多站同榜</div>
+      </div>
+      <div class="tabs">
+        <div class="tab on">全部</div><div class="tab">微博</div><div class="tab">知乎</div>
+        <div class="tab">百度</div><div class="tab">头条</div><div class="tab">抖音</div>
+      </div>
+      <div class="list">
+        <div class="row hot">
+          <div class="rk tabular">1</div>
+          <div class="bd">
+            <div class="ti">青岛货轮火灾25人遇难</div>
+            <div class="sub"><span class="corr">3 站同榜</span><span>微博 · 百度 · 头条</span></div>
+          </div>
+          <div class="heat">100</div>
+        </div>
+        <div class="row hot">
+          <div class="rk tabular">2</div>
+          <div class="bd">
+            <div class="ti">中国女篮不敌法国无缘世界杯四强</div>
+            <div class="sub"><span class="corr">4 站同榜</span><span>抖音 · 百度 · 头条</span></div>
+          </div>
+          <div class="heat">97</div>
+        </div>
+        <div class="row hot">
+          <div class="rk tabular">3</div>
+          <div class="bd">
+            <div class="ti">赵昭仪录节目突发哮喘</div>
+            <div class="sub"><span class="corr">2 站同榜</span><span>百度 · 微博</span></div>
+          </div>
+          <div class="heat">82</div>
+        </div>
+        <div class="row hot">
+          <div class="rk tabular">4</div>
+          <div class="bd">
+            <div class="ti">演员王新昉在出租屋去世</div>
+            <div class="sub"><span class="corr">2 站同榜</span><span>百度 · 头条</span></div>
+          </div>
+          <div class="heat">80</div>
+        </div>
+        <div class="row">
+          <div class="rk tabular">5</div>
+          <div class="bd">
+            <div class="ti">人为什么要读书最好的答案</div>
+            <div class="sub"><span>微博</span></div>
+          </div>
+          <div class="heat">79</div>
+        </div>
+        <div class="row hot">
+          <div class="rk tabular">6</div>
+          <div class="bd">
+            <div class="ti">许绍雄去世近1年 代言品牌仍用其头像</div>
+            <div class="sub"><span class="corr">2 站同榜</span><span>百度 · 头条</span></div>
+          </div>
+          <div class="heat">79</div>
+        </div>
+        <div class="row">
+          <div class="rk tabular">7</div>
+          <div class="bd">
+            <div class="ti">我国成功发射一箭六星</div>
+            <div class="sub"><span>微博</span></div>
+          </div>
+          <div class="heat">76</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>核心决策：</b>去掉所有卡片和底色，用<b>细分割线</b>划分。<br>
+    「多站同榜」不再用彩色徽标，改成<b>左侧一根橙色竖线 + 橙色小字</b> ——
+    把最重要的信号做成<b>结构</b>而不是<b>装饰</b>。<br>
+    平台名降级成灰色小字，解决彩虹打架。<br>
+    连热度条都删了：右边已经有数字。
+  </div>
+</div>
+
+<!-- ================= 方案 B ================= -->
+<div class="section">
+  <div class="label">方案 B · 编辑杂志 <span>— 大字号 / 强对比 / 暖纸感</span></div>
+
+  <div class="phone B">
+    <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁ ▰</span></div>
+    <div class="scroll">
+      <div class="hd">
+        <div class="kick">Hot Search Aggregate</div>
+        <h1>热榜聚合</h1>
+        <div class="rule"></div>
+        <div class="meta"><span>6 站在线 · 14:32 更新</span><span>8 个多站同榜</span></div>
+      </div>
+      <div class="tabs">
+        <div class="tab on">全部</div><div class="tab">微博</div><div class="tab">知乎</div>
+        <div class="tab">百度</div><div class="tab">头条</div><div class="tab">抖音</div>
+      </div>
+      <div class="list">
+        <div class="row">
+          <div class="rk">1</div>
+          <div class="bd">
+            <div class="ti">青岛货轮火灾25人遇难</div>
+            <div class="sub"><span class="corr">3 站同榜</span><span class="plat">微博 · 百度 · 头条</span></div>
+          </div>
+          <div class="heat">100<span>热度</span></div>
+        </div>
+        <div class="row">
+          <div class="rk">2</div>
+          <div class="bd">
+            <div class="ti">中国女篮不敌法国无缘世界杯四强</div>
+            <div class="sub"><span class="corr">4 站同榜</span><span class="plat">抖音 · 百度 · 头条</span></div>
+          </div>
+          <div class="heat">97<span>热度</span></div>
+        </div>
+        <div class="row">
+          <div class="rk">3</div>
+          <div class="bd">
+            <div class="ti">赵昭仪录节目突发哮喘</div>
+            <div class="sub"><span class="corr">2 站同榜</span><span class="plat">百度 · 微博</span></div>
+          </div>
+          <div class="heat">82<span>热度</span></div>
+        </div>
+        <div class="row">
+          <div class="rk">4</div>
+          <div class="bd">
+            <div class="ti">演员王新昉在出租屋去世</div>
+            <div class="sub"><span class="corr">2 站同榜</span><span class="plat">百度 · 头条</span></div>
+          </div>
+          <div class="heat">80<span>热度</span></div>
+        </div>
+        <div class="row">
+          <div class="rk">5</div>
+          <div class="bd">
+            <div class="ti">人为什么要读书最好的答案</div>
+            <div class="sub"><span class="plat">微博</span></div>
+          </div>
+          <div class="heat">79<span>热度</span></div>
+        </div>
+        <div class="row">
+          <div class="rk">6</div>
+          <div class="bd">
+            <div class="ti">许绍雄去世近1年 代言品牌仍用其头像</div>
+            <div class="sub"><span class="corr">2 站同榜</span><span class="plat">百度 · 头条</span></div>
+          </div>
+          <div class="heat">79<span>热度</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>核心决策：</b>参考杂志排版 —— <b>超大粗体名次数字</b>做视觉锚点，<b>暖白纸底</b>替代纯白。<br>
+    全黑白灰，<b>一个彩色都不用</b>，只有第 1 名的名次是暗红。<br>
+    「N 站同榜」做成<b>黑底白字方块</b>，靠对比度而非颜色抓眼睛。<br>
+    整体气质：严肃、有分量、不像"工具"像"刊物"。
+  </div>
+</div>
+
+<!-- ================= 方案 C ================= -->
+<div class="section">
+  <div class="label">方案 C · 深色沉稳 <span>— 暗底 / 弱边框 / 琥珀点缀</span></div>
+
+  <div class="phone C">
+    <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁ ▰</span></div>
+    <div class="scroll">
+      <div class="hd">
+        <h1>热榜聚合</h1>
+        <div class="meta">
+          <span>6 站在线</span><span class="pill">14:32 更新</span>
+          <span class="pill amber">8 个多站同榜</span>
+        </div>
+      </div>
+      <div class="tabs">
+        <div class="tab on">全部</div><div class="tab">微博</div><div class="tab">知乎</div>
+        <div class="tab">百度</div><div class="tab">头条</div><div class="tab">抖音</div>
+      </div>
+      <div class="list">
+        <div class="row">
+          <div class="rk">1</div>
+          <div class="bd">
+            <div class="ti">青岛货轮火灾25人遇难</div>
+            <div class="sub"><span class="corr"><i></i>3 站同榜</span><span class="plat">微博 · 百度 · 头条</span></div>
+          </div>
+          <div class="heat">100</div>
+        </div>
+        <div class="row">
+          <div class="rk">2</div>
+          <div class="bd">
+            <div class="ti">中国女篮不敌法国无缘世界杯四强</div>
+            <div class="sub"><span class="corr"><i></i>4 站同榜</span><span class="plat">抖音 · 百度 · 头条</span></div>
+          </div>
+          <div class="heat">97</div>
+        </div>
+        <div class="row">
+          <div class="rk">3</div>
+          <div class="bd">
+            <div class="ti">赵昭仪录节目突发哮喘</div>
+            <div class="sub"><span class="corr"><i></i>2 站同榜</span><span class="plat">百度 · 微博</span></div>
+          </div>
+          <div class="heat">82</div>
+        </div>
+        <div class="row">
+          <div class="rk">4</div>
+          <div class="bd">
+            <div class="ti">演员王新昉在出租屋去世</div>
+            <div class="sub"><span class="corr"><i></i>2 站同榜</span><span class="plat">百度 · 头条</span></div>
+          </div>
+          <div class="heat">80</div>
+        </div>
+        <div class="row">
+          <div class="rk">5</div>
+          <div class="bd">
+            <div class="ti">人为什么要读书最好的答案</div>
+            <div class="sub"><span class="plat">微博</span></div>
+          </div>
+          <div class="heat">79</div>
+        </div>
+        <div class="row">
+          <div class="rk">6</div>
+          <div class="bd">
+            <div class="ti">许绍雄去世近1年 代言品牌仍用其头像</div>
+            <div class="sub"><span class="corr"><i></i>2 站同榜</span><span class="plat">百度 · 头条</span></div>
+          </div>
+          <div class="heat">79</div>
+        </div>
+        <div class="row">
+          <div class="rk">7</div>
+          <div class="bd">
+            <div class="ti">我国成功发射一箭六星</div>
+            <div class="sub"><span class="plat">微博</span></div>
+          </div>
+          <div class="heat">76</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>核心决策：</b>深色为<b>主色调</b>（不是跟随系统，是默认就黑）。低对比度底盘 + 柔和圆角。<br>
+    唯一的颜色是<b>琥珀色</b>，且只用在「多站同榜」和第 1 名上，其余全是灰阶。<br>
+    气质：像夜间读新闻的阅读器，安静、不刺眼、适合睡前刷。
+  </div>
+</div>
+
+<div style="max-width:390px;font-size:12px;line-height:1.8;color:#55555E;
+  background:#fff;border-radius:12px;padding:14px 16px;margin-top:4px;">
+  <b style="color:#111;">怎么选：</b><br>
+  ① 直接说 <b>A / B / C</b> 选一版；<br>
+  ② 或者说混搭，比如「B 的字号 + A 的排版」；<br>
+  ③ 也可以说「都不行，我要 XX 方向」——那就再来一轮。<br><br>
+  三版的信息量<b>完全一样</b>，差别只在视觉语言。所以选的时候问自己：
+  <b>我愿意天天打开哪一版？</b>
+</div>
+
+</body>
+</html>

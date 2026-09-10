@@ -3,9 +3,12 @@ package com.minis.hotrank
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.minis.hotrank.data.AppSettings
+import com.minis.hotrank.data.DetailForm
 import com.minis.hotrank.data.HotRepository
 import com.minis.hotrank.data.Subscription
 import com.minis.hotrank.data.SubscriptionStore
+import com.minis.hotrank.model.HotItem
 import com.minis.hotrank.model.Platform
 import com.minis.hotrank.model.RankedEvent
 import com.minis.hotrank.notify.Notifier
@@ -19,15 +22,16 @@ data class HotUiState(
     val loading: Boolean = true,
     val refreshing: Boolean = false,
     val events: List<RankedEvent> = emptyList(),
+    val byPlatform: Map<Platform, List<HotItem>> = emptyMap(),
     val failed: List<Platform> = emptyList(),
     val onlineCount: Int = 0,
     val updatedAt: Long = 0L,
     val error: String? = null,
     val subscriptions: List<Subscription> = emptyList(),
     val notifyEnabled: Boolean = false,
-    val canPostNotification: Boolean = true,
+    val detailForm: DetailForm = DetailForm.FULLSCREEN,
+    val showCrossLink: Boolean = true,
 ) {
-    /** 多站同榜的事件数 —— 这个数字本身就是产品的卖点。 */
     val corroboratedCount: Int get() = events.count { it.corroboration > 1 }
 }
 
@@ -35,13 +39,21 @@ class HotViewModel(app: Application) : AndroidViewModel(app) {
 
     private val repo = HotRepository(app)
     private val store = SubscriptionStore(app)
+    private val settings = AppSettings(app)
 
     private val _state = MutableStateFlow(HotUiState())
     val state: StateFlow<HotUiState> = _state.asStateFlow()
 
+    /** "平台|标题" -> 综合榜名次。列表里做跨榜衔接标记用。 */
+    private var crossLink: Map<String, Int> = emptyMap()
+
     init {
         Notifier.ensureChannel(getApplication())
         syncSubscriptions()
+        _state.value = _state.value.copy(
+            detailForm = settings.detailForm,
+            showCrossLink = settings.showCrossLink,
+        )
         refresh(force = false)
     }
 
@@ -55,11 +67,13 @@ class HotViewModel(app: Application) : AndroidViewModel(app) {
             )
 
             val feed = repo.load(force)
+            crossLink = feed.crossLink
 
             _state.value = _state.value.copy(
                 loading = false,
                 refreshing = false,
                 events = feed.events,
+                byPlatform = feed.byPlatform,
                 failed = feed.failed,
                 onlineCount = feed.onlineCount,
                 updatedAt = feed.updatedAt,
@@ -68,17 +82,34 @@ class HotViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /**
+     * 某条原始榜单条目在综合榜上的名次。
+     * 用来在平台原始榜里标出「上综合榜第 N」—— 让用户明白两个榜的关系不是割裂的。
+     */
+    fun aggregateRankOf(item: HotItem): Int? =
+        crossLink[repo.crossLinkKey(item.platform, item.title)]
+
+    // ---------- 设置 ----------
+
+    fun setDetailForm(form: DetailForm) {
+        settings.detailForm = form
+        _state.value = _state.value.copy(detailForm = form)
+    }
+
+    fun setShowCrossLink(enabled: Boolean) {
+        settings.showCrossLink = enabled
+        _state.value = _state.value.copy(showCrossLink = enabled)
+    }
+
     // ---------- 订阅 ----------
 
     private fun syncSubscriptions() {
         _state.value = _state.value.copy(
             subscriptions = store.list(),
             notifyEnabled = store.enabled,
-            canPostNotification = Notifier.canNotify(getApplication()),
         )
     }
 
-    /** 返回 false 表示关键词重复。 */
     fun addKeyword(keyword: String): Boolean {
         val ok = store.add(keyword)
         if (ok) onSubscriptionsChanged()
@@ -107,19 +138,11 @@ class HotViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun onSubscriptionsChanged() {
         val hasAny = store.list().isNotEmpty()
-        // 有订阅就确保后台任务在跑，订阅清空就停掉，不留无用的唤醒
         if (hasAny && store.enabled) {
             KeywordScheduler.schedule(getApplication())
         } else if (!hasAny) {
             KeywordScheduler.cancel(getApplication())
         }
         syncSubscriptions()
-    }
-
-    /** 从订阅页返回主界面时刷新权限状态。 */
-    fun refreshPermissionState() {
-        _state.value = _state.value.copy(
-            canPostNotification = Notifier.canNotify(getApplication())
-        )
     }
 }

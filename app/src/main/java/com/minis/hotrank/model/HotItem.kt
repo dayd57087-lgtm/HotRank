@@ -1,11 +1,13 @@
 package com.minis.hotrank.model
 
 /**
- * 一条原始热榜条目（来自某个平台的某个名次）。
+ * 一条原始热榜条目。
  *
- * hotLabel 是给人看的文本（"183.5万" / "3504万热度" / "1395775播放"），
- * rawHeat 是解析出来的数值，只参与归一化计算，不直接展示。
- * 两者分开是因为各平台的热度格式完全不统一，而排序又必须要数值。
+ * hotLabel 给人看（"183.5万" / "3504万热度"），rawHeat 参与归一化计算，两者分开。
+ * summary / image / contentId / stats 来自接口的 extra 字段，各平台给的完整度差别很大：
+ *   知乎 desc+image(相对路径，实际取不到图) / 百度 desc+img / 抖音 cover+播放数 /
+ *   B站 desc+pic+BV号+完整统计 / 微博 无 / 头条 无
+ * 所以详情页必须能逐级降级，缺什么就少显示什么，不能假设一定存在。
  */
 data class HotItem(
     val platform: Platform,
@@ -14,33 +16,33 @@ data class HotItem(
     val url: String,
     val hotLabel: String?,
     val rawHeat: Double?,
+    val summary: String? = null,
+    val image: String? = null,
+    val contentId: String? = null,
+    val stats: Map<String, String> = emptyMap(),
 )
 
 /**
- * 平台。weight 是产品判断，不是技术参数 —— 它决定各平台在综合热度里的分量。
- * 数值集中放在这里，方便以后统一调整或做成用户可配置。
+ * packageName 用于把跳转精确限定到目标 App，避免系统弹「选择应用」。
+ * 拿不准的 scheme 一律靠 PlatformLauncher 逐级尝试 + resolveActivity 探测兜底。
  */
 enum class Platform(
     val apiId: String,
     val label: String,
     val argb: Long,
     val weight: Double,
+    val packageName: String,
+    val short: String,
 ) {
-    WEIBO("weibo", "微博", 0xFFE6162D, 1.00),
-    BAIDU("baidu", "百度", 0xFF2932E1, 0.95),
-    DOUYIN("douyin", "抖音", 0xFFFE2C55, 0.95),
-    TOUTIAO("toutiao", "头条", 0xFFF04142, 0.90),
-    ZHIHU("zhihu", "知乎", 0xFF0084FF, 0.88),
-    BILIBILI("bilibili", "B站", 0xFFFB7299, 0.85),
+    WEIBO("weibo", "微博", 0xFFE6162D, 1.00, "com.sina.weibo", "微博"),
+    BAIDU("baidu", "百度", 0xFF2932E1, 0.95, "com.baidu.searchbox", "百度"),
+    DOUYIN("douyin", "抖音", 0xFFFE2C55, 0.95, "com.ss.android.ugc.aweme", "抖音"),
+    TOUTIAO("toutiao", "头条", 0xFFF04142, 0.90, "com.ss.android.article.news", "头条"),
+    ZHIHU("zhihu", "知乎", 0xFF0084FF, 0.88, "com.zhihu.android", "知乎"),
+    BILIBILI("bilibili", "B站", 0xFFFB7299, 0.85, "tv.danmaku.bili", "B站"),
 }
 
-/**
- * 聚合后的「事件」。一个事件可能由多个平台的条目共同支撑。
- *
- * heatIndex     0~100 的综合热度，全榜最高的事件恒为 100，用于展示
- * members       参与该事件的原始条目，按贡献度降序
- * platforms     去重后的平台列表（按贡献度降序），size >= 2 即「多站同榜」
- */
+/** 聚合后的「事件」：可能由多个平台的条目共同支撑。 */
 data class RankedEvent(
     val title: String,
     val url: String,
@@ -50,7 +52,30 @@ data class RankedEvent(
     val platforms: List<Platform>,
 ) {
     val corroboration: Int get() = platforms.size
-
-    /** 该事件在贡献最大的那个平台上的名次，用于「微博 #2」这类展示。 */
     val topRank: Int get() = members.firstOrNull()?.rank ?: 0
 }
+
+/**
+ * 详情页的数据载体。综合榜传一个事件的全部成员，平台原始榜传单条，
+ * 这样同一个详情页能服务两种入口，不需要两套界面。
+ */
+data class DetailData(
+    val title: String,
+    val heatIndex: Int?,
+    val members: List<HotItem>,
+) {
+    val corroboration: Int get() = members.map { it.platform }.distinct().size
+
+    /** 各平台给的配图里挑一张能用的。 */
+    val image: String? get() = members.firstNotNullOfOrNull { it.image }
+
+    /** 摘要取最长的那个 —— 通常也是最完整的一条。 */
+    val summary: String? get() = members
+        .mapNotNull { it.summary?.trim() }
+        .filter { it.isNotEmpty() }
+        .maxByOrNull { it.length }
+}
+
+fun RankedEvent.toDetail() = DetailData(title, heatIndex, members)
+
+fun HotItem.toDetail() = DetailData(title, null, listOf(this))

@@ -8,76 +8,63 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-/** 热榜主色：偏橙的红，比纯红更有"热度"感。 */
-val HeatRed = Color(0xFFD7263D)
-val HeatOrange = Color(0xFFF46036)
-val HeatAmber = Color(0xFFFFB300)
+/**
+ * 编辑杂志风配色（方案 B）。
+ *
+ * 设计约束：**全屏只有一处彩色**。
+ * 主色是一支偏暗的红，只用在第 1 名的名次、综合热度数字上；
+ * 其余一切（标题、名次、分割线、平台名）都是黑 / 灰 / 暖纸底的灰阶关系。
+ * 平台品牌色只在详情页的小圆点上出现一次，且面积极小 —— 列表里的"彩虹打架"就是这么消掉的。
+ */
 
-val GoldMedal = Color(0xFFE8A33D)
-val SilverMedal = Color(0xFF9AA5B1)
-val BronzeMedal = Color(0xFFB08154)
+val HeatRed = Color(0xFFC4342A)
 
-/** 顶部头部区的渐变，深红 -> 橙，三档过渡避免出现色带。 */
-val HeaderGradient = Brush.linearGradient(
-    listOf(Color(0xFF9E1B32), Color(0xFFD7263D), Color(0xFFF46036))
-)
-
-/** 综合热度条的渐变。 */
-val HeatBarGradient = Brush.horizontalGradient(
-    listOf(Color(0xFFF46036), Color(0xFFD7263D))
-)
-
-/** 「N 站同榜」徽标的渐变 —— 这是全 App 最该被注意到的信息。 */
-val CorroborationGradient = Brush.horizontalGradient(
-    listOf(Color(0xFFF46036), Color(0xFFD7263D))
-)
+/** 暖纸底，比纯白柔和，长时间看不刺眼。 */
+val Paper = Color(0xFFFBF9F5)
+val PaperDark = Color(0xFF141210)
 
 private val LightColors = lightColorScheme(
     primary = HeatRed,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFFFE1E4),
-    onPrimaryContainer = Color(0xFF40000A),
-    secondary = HeatOrange,
+    primaryContainer = Color(0xFFF2E5E3),
+    onPrimaryContainer = Color(0xFF4A0F0A),
+    secondary = Color(0xFF6B6259),
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFF3E7F3),
-    onSecondaryContainer = Color(0xFF1E1A1F),
-    background = Color(0xFFF7F5F7),
-    onBackground = Color(0xFF1B1B1F),
-    surface = Color(0xFFFFFFFF),
-    onSurface = Color(0xFF1B1B1F),
-    surfaceVariant = Color(0xFFEDEAEF),
-    onSurfaceVariant = Color(0xFF6B6A70),
-    outline = Color(0xFFD9D5DC),
-    outlineVariant = Color(0xFFE8E4EB),
+    secondaryContainer = Color(0xFFEFEAE2),
+    onSecondaryContainer = Color(0xFF2A241D),
+    background = Paper,
+    onBackground = Color(0xFF141210),
+    surface = Paper,
+    onSurface = Color(0xFF141210),
+    surfaceVariant = Color(0xFFF2EDE4),
+    onSurfaceVariant = Color(0xFF8C8378),
+    outline = Color(0xFFC9C0B2),
+    outlineVariant = Color(0xFFE5DED2),
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFFFF8A80),
-    onPrimary = Color(0xFF5C0011),
-    primaryContainer = Color(0xFF8B0A21),
-    onPrimaryContainer = Color(0xFFFFDAD6),
-    secondary = Color(0xFFFFB59B),
-    onSecondary = Color(0xFF5A1B00),
-    secondaryContainer = Color(0xFF2B2A31),
-    onSecondaryContainer = Color(0xFFEAE1E9),
-    background = Color(0xFF121013),
-    onBackground = Color(0xFFE9E5EA),
-    surface = Color(0xFF1C1A1E),
-    onSurface = Color(0xFFE9E5EA),
-    surfaceVariant = Color(0xFF2A272C),
-    onSurfaceVariant = Color(0xFFA9A4AC),
-    outline = Color(0xFF3A3640),
-    outlineVariant = Color(0xFF2C2930),
+    primary = Color(0xFFE8604F),
+    onPrimary = Color(0xFF2A0703),
+    primaryContainer = Color(0xFF6B1A12),
+    onPrimaryContainer = Color(0xFFFFDAD3),
+    secondary = Color(0xFFB3A899),
+    onSecondary = Color(0xFF241F19),
+    secondaryContainer = Color(0xFF26221C),
+    onSecondaryContainer = Color(0xFFEDE5D9),
+    background = PaperDark,
+    onBackground = Color(0xFFF2EDE4),
+    surface = PaperDark,
+    onSurface = Color(0xFFF2EDE4),
+    surfaceVariant = Color(0xFF211D18),
+    onSurfaceVariant = Color(0xFF9C9385),
+    outline = Color(0xFF4A4239),
+    outlineVariant = Color(0xFF2E2A24),
 )
 
-/**
- * dynamicColor 默认关闭：开了之后系统会按壁纸取色，品牌红被覆盖，
- * 头部渐变的视觉一致性就没了。
- */
+/** dynamicColor 恒为关：B 方案的全部气质都建立在"只有一处彩色"上，被系统取色就毁了。 */
 @Composable
 fun HotRankTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
