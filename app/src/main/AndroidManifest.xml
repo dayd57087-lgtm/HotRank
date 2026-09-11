@@ -6,6 +6,32 @@
     <!-- Android 13+ 发通知需要运行时授权 -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!--
+      ★ 关键 ★
+      Android 11（API 30）起有「软件包可见性」限制：targetSdk >= 30 的应用
+      默认看不到任何未在此声明的包。不写这段的后果是——
+      getPackageInfo 抛 NameNotFound、resolveActivity 返回 null，
+      于是「明明装了微博，点击却总是跳到浏览器」。
+
+      /queries 声明后，下面这 6 个包才能被查询和探测到。
+      新增平台时，记得把对应的包名也加到这里。
+    -->
+    <queries>
+        <package android:name="com.sina.weibo" />
+        <package android:name="com.zhihu.android" />
+        <package android:name="com.baidu.searchbox" />
+        <package android:name="com.ss.android.article.news" />
+        <package android:name="com.ss.android.ugc.aweme" />
+        <package android:name="tv.danmaku.bili" />
+
+        <!-- 浏览器兜底用，保证 ACTION_VIEW https 能正常解析 -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"

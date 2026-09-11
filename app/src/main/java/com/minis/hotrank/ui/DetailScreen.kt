@@ -155,7 +155,8 @@ private fun DetailBody(data: DetailData, onDismiss: () -> Unit, heroHeight: andr
 
             Spacer(Modifier.height(12.dp))
             Text(
-                text = "「打开」表示能直达该平台 App 内的这条内容；「搜索」表示只有关键词，只能到结果页。",
+                text = "已装对应 App 的会直接跳进 App；没装的用浏览器打开。" +
+                    "「打开」能直达这条内容，「搜索」只能到该 App 的结果页。",
                 fontSize = 10.5.sp,
                 lineHeight = 16.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -307,15 +308,24 @@ private fun HeatPanel(heat: Int, corroboration: Int) {
 
 @Composable
 private fun PlatformButton(item: HotItem, onClick: () -> Unit) {
+    // 按钮文案如实反映实际去向：装了 App 就显示去 App，没装就说明会用浏览器
+    val installed = PlatformLauncher.isInstalled(context = LocalContext.current, platform = item.platform)
     val precise = PlatformLauncher.canOpenPrecisely(item)
     val accent = Color(item.platform.argb)
+
+    val label = when {
+        !installed -> "用浏览器打开"
+        precise -> "在${item.platform.label}打开"
+        else -> "在${item.platform.label}搜索"
+    }
+    val filled = installed
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(9.dp))
             .then(
-                if (precise) Modifier.background(MaterialTheme.colorScheme.onSurface)
+                if (filled) Modifier.background(MaterialTheme.colorScheme.onSurface)
                 else Modifier.border(
                     1.5.dp,
                     MaterialTheme.colorScheme.outline,
@@ -330,15 +340,15 @@ private fun PlatformButton(item: HotItem, onClick: () -> Unit) {
             Modifier
                 .size(7.dp)
                 .clip(CircleShape)
-                .background(accent)
+                .background(if (installed) accent else MaterialTheme.colorScheme.outline)
         )
         Spacer(Modifier.width(9.dp))
 
         Text(
-            text = if (precise) "在${item.platform.label}打开" else "在${item.platform.label}搜索",
+            text = label,
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
-            color = if (precise) MaterialTheme.colorScheme.surface
+            color = if (filled) MaterialTheme.colorScheme.surface
             else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
         )
@@ -347,7 +357,7 @@ private fun PlatformButton(item: HotItem, onClick: () -> Unit) {
             text = listOfNotNull("第 ${item.rank} 名", item.hotLabel).joinToString(" · "),
             fontSize = 10.sp,
             fontWeight = FontWeight.Medium,
-            color = if (precise) MaterialTheme.colorScheme.surface.copy(alpha = 0.62f)
+            color = if (filled) MaterialTheme.colorScheme.surface.copy(alpha = 0.62f)
             else MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
