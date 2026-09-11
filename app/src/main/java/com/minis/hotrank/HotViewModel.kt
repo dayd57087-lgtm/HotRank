@@ -11,6 +11,8 @@ import com.minis.hotrank.data.SubscriptionStore
 import com.minis.hotrank.model.HotItem
 import com.minis.hotrank.model.Platform
 import com.minis.hotrank.model.RankedEvent
+import com.minis.hotrank.model.TimeBucket
+import com.minis.hotrank.model.TimelineEntry
 import com.minis.hotrank.notify.Notifier
 import com.minis.hotrank.work.KeywordScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,8 +33,23 @@ data class HotUiState(
     val notifyEnabled: Boolean = false,
     val detailForm: DetailForm = DetailForm.FULLSCREEN,
     val showCrossLink: Boolean = true,
+    val timeline: List<TimelineEntry> = emptyList(),
+    val timelineFailed: Boolean = false,
 ) {
     val corroboratedCount: Int get() = events.count { it.corroboration > 1 }
+
+    /** 时间线按发布时间分段，空段自动剔除。 */
+    val timelineGrouped: List<Pair<TimeBucket, List<TimelineEntry>>>
+        get() = TimeBucket.entries.mapNotNull { bucket ->
+            val items = timeline.filter { minutesAgo(it.publishedAt) < bucket.maxMinutes }
+            if (items.isEmpty()) null else bucket to items
+        }
+
+    /** 24 小时内仍在热搜上的条数，用于头部统计。 */
+    val timelineHotCount: Int get() = timeline.count { it.isHotNow }
+
+    private fun minutesAgo(timestamp: Long): Int =
+        ((System.currentTimeMillis() - timestamp) / 60_000L).toInt().coerceAtLeast(0)
 }
 
 class HotViewModel(app: Application) : AndroidViewModel(app) {
@@ -78,6 +95,8 @@ class HotViewModel(app: Application) : AndroidViewModel(app) {
                 onlineCount = feed.onlineCount,
                 updatedAt = feed.updatedAt,
                 error = if (feed.events.isEmpty()) "没能拿到榜单，检查下网络再试" else null,
+                timeline = feed.timeline,
+                timelineFailed = feed.timelineFailed,
             )
         }
     }

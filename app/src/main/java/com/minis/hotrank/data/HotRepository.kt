@@ -4,6 +4,8 @@ import android.content.Context
 import com.minis.hotrank.model.HotItem
 import com.minis.hotrank.model.Platform
 import com.minis.hotrank.model.RankedEvent
+import com.minis.hotrank.model.TimeBucket
+import com.minis.hotrank.model.TimelineEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -19,6 +21,10 @@ data class HotFeed(
     val updatedAt: Long,
     /** "平台|标题" -> 该条在综合榜上的名次，用于原始榜里的「上综合榜第N」衔接标记。 */
     val crossLink: Map<String, Int>,
+    /** 已按发布时间倒序、且过滤到 24 小时内的全网热点。 */
+    val timeline: List<TimelineEntry>,
+    /** 时间线拉到没有（源挂了），用来区分"没内容"和"没拿到"。 */
+    val timelineFailed: Boolean,
 )
 
 /**
@@ -27,11 +33,14 @@ data class HotFeed(
  * 缓存按「平台原始列表」存，不存排序结果 —— 排序是纯计算，每次重新跑，
  * 这样以后调算法参数不会让老缓存变成脏数据。extra 字段一并缓存，
  * 否则详情页会没摘要没图。
+ *
+ * 时间线不走缓存：它的价值就在于"新"，读到旧的就失去意义了。
  */
 class HotRepository(context: Context) {
 
-    private val prefs =
-        context.applicationContext.getSharedPreferences("hot_cache", Context.MODE_PRIVATE)
+    private val appContext = context.applicationContext
+    private val prefs = appContext.getSharedPreferences("hot_cache", Context.MODE_PRIVATE)
+    private val seenStore = SeenHotStore(appContext)
 
     suspend fun load(force: Boolean): HotFeed = coroutineScope {
         val results = Platform.entries
@@ -61,6 +70,23 @@ class HotRepository(context: Context) {
             }
         }
 
+        // 时间线：记录当前榜 -> 拉新闻 -> 交叉关联
+        val timelineDeferred = async(Dispatchers.IO) {
+            if (byPlatform.isNotEmpty()) seenStore.record(byPlatform)
+            val live = seenStore.liveIndex(byPlatform)
+            val cutoff = System.currentTimeMillis() - DAY
+
+            val news = NewsApi.fetch()
+            if (news.isEmpty()) return@async null
+
+            news.asSequence()
+                .filter { it.publishedAt >= cutoff }
+                .map { entry -> entry.copy(hotLinks = seenStore.linksFor(entry, live)) }
+                .toList()
+        }
+
+        val timeline = timelineDeferred.await()
+
         HotFeed(
             events = events,
             byPlatform = byPlatform,
@@ -68,6 +94,8 @@ class HotRepository(context: Context) {
             onlineCount = byPlatform.size,
             updatedAt = updatedAt,
             crossLink = crossLink,
+            timeline = timeline.orEmpty(),
+            timelineFailed = timeline == null,
         )
     }
 
@@ -154,7 +182,14 @@ class HotRepository(context: Context) {
         }.getOrNull()?.takeIf { it.isNotEmpty() }
     }
 
+    /** 把时间线按发布时间分段，空段不返回。 */
+    fun bucketOf(entry: TimelineEntry): TimeBucket {
+        val minutes = ((System.currentTimeMillis() - entry.publishedAt) / 60_000L).toInt()
+        return TimeBucket.entries.firstOrNull { minutes < it.maxMinutes } ?: TimeBucket.SIX_TO_DAY
+    }
+
     companion object {
         private const val TTL = 10 * 60 * 1000L
+        private const val DAY = 24 * 60 * 60 * 1000L
     }
 }

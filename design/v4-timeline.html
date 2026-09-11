@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>改造方案：平台按钮 + 热搜时间线</title>
+<style>
+  :root{
+    --cjk:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC",
+          "Source Han Sans SC","Microsoft YaHei",sans-serif;
+    --paper:#FBF9F5; --ink:#141210; --ink2:#3A342C; --muted:#9C9385;
+    --line:#E5DED2; --red:#C4342A; --chip:#EFEAE2;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  body{font-family:var(--cjk);background:#DEDCD8;padding:16px 8px 70px;
+    display:flex;flex-direction:column;align-items:center;gap:30px;}
+  .sec{width:100%;max-width:420px;display:flex;flex-direction:column;gap:11px;}
+  .lbl{font-size:13px;font-weight:800;color:#2A2A2E;letter-spacing:.3px;}
+  .lbl em{font-style:normal;font-weight:400;color:#8A8A92;font-size:11.5px;}
+  .note{font-size:11.5px;line-height:1.78;color:#5A5A63;background:#fff;
+    border-radius:10px;padding:11px 13px;border-left:3px solid #C9C9D0;}
+  .note b{color:#222;} .note .hi{color:#C4342A;font-weight:700;}
+  .note code{background:#F1F0EE;padding:1px 5px;border-radius:3px;font-size:10.5px;}
+  .phone{width:100%;background:var(--paper);color:var(--ink);border-radius:22px;
+    overflow:hidden;box-shadow:0 10px 28px rgba(0,0,0,.15);}
+  .sb{height:26px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 16px;font-size:10.5px;font-weight:600;}
+  .hd{padding:8px 20px 12px;}
+  .kick{font-size:9.5px;font-weight:800;letter-spacing:2.2px;color:#B09A7A;}
+  h1{font-size:28px;font-weight:900;letter-spacing:-1.2px;line-height:1.06;margin-top:5px;}
+  .rule{height:2.5px;background:var(--ink);margin-top:10px;}
+  .hmeta{margin-top:7px;font-size:10.5px;color:#8C8378;display:flex;justify-content:space-between;}
+  .tabs{display:flex;gap:6px;padding:0 20px 10px;}
+  .tab{font-size:12px;padding:5px 12px;border-radius:3px;background:var(--chip);
+    color:#6B6259;white-space:nowrap;font-weight:700;flex:0 0 auto;}
+  .tab.on{background:var(--ink);color:var(--paper);}
+
+  /* ---------- 详情页：平台按钮改造 ---------- */
+  .det{padding:0 20px 22px;}
+  .det h2{font-size:20px;font-weight:900;letter-spacing:-.6px;line-height:1.28;}
+  .det .corr{display:inline-block;background:var(--ink);color:var(--paper);
+    font-size:9.5px;font-weight:800;padding:2.5px 7px;border-radius:3px;margin-top:9px;}
+  .det .sum{margin-top:12px;font-size:12.5px;line-height:1.75;color:var(--ink2);}
+  .heatbar{margin-top:14px;background:#F2EDE4;border-radius:10px;padding:11px 14px;
+    display:flex;align-items:center;gap:13px;}
+  .heatbar .big{font-size:27px;font-weight:900;letter-spacing:-1.2px;line-height:1;
+    color:var(--red);}
+  .heatbar .t{font-size:10.5px;color:#7C7264;line-height:1.55;font-weight:600;}
+
+  .sechd{margin:18px 0 9px;font-size:9.5px;font-weight:800;letter-spacing:1.6px;
+    color:#B09A7A;display:flex;justify-content:space-between;align-items:baseline;}
+  .sechd i{font-style:normal;font-size:10px;letter-spacing:0;color:var(--muted);font-weight:600;}
+
+  /* 旧样式（问题所在） */
+  .oldbtn{display:flex;align-items:center;gap:9px;border-radius:9px;
+    padding:11px 14px;margin-bottom:7px;border:1.5px solid var(--line);}
+  .oldbtn .pn{font-size:13px;font-weight:800;flex:1;}
+  .oldbtn .pd{font-size:10px;color:var(--muted);font-weight:600;}
+  .oldbtn.fill{background:var(--ink);border-color:var(--ink);color:var(--paper);}
+  .oldbtn.fill .pd{color:rgba(251,249,245,.6);}
+  .olddot{width:7px;height:7px;border-radius:50%;flex:0 0 auto;}
+
+  /* 新样式：平台名 + 该平台自己的热搜名 + 动作 */
+  .newbtn{border:1.5px solid var(--line);border-radius:10px;padding:11px 14px;
+    margin-bottom:8px;background:#fff;}
+  .newbtn.fill{background:var(--ink);border-color:var(--ink);}
+  .newbtn .r1{display:flex;align-items:center;gap:8px;}
+  .newbtn .plat{font-size:13.5px;font-weight:900;color:var(--ink);}
+  .newbtn .act{font-size:10.5px;font-weight:700;color:var(--muted);
+    background:var(--chip);padding:2.5px 8px;border-radius:20px;}
+  .newbtn .num{margin-left:auto;font-size:10px;color:var(--muted);font-weight:600;
+    font-variant-numeric:tabular-nums;}
+  .newbtn .r2{margin-top:7px;font-size:12px;line-height:1.5;color:var(--ink2);
+    display:flex;gap:7px;align-items:flex-start;}
+  .newbtn .r2 .arw{color:var(--muted);font-size:11px;padding-top:1px;}
+  .newbtn.fill .plat,.newbtn.fill .r2{color:var(--paper);}
+  .newbtn.fill .act{background:rgba(251,249,245,.16);color:rgba(251,249,245,.85);}
+  .newbtn.fill .num{color:rgba(251,249,245,.62);}
+  .newbtn.fill .r2 .arw{color:rgba(251,249,245,.5);}
+  .newbtn .dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto;}
+
+  /* ---------- 时间线 ---------- */
+  .tl{padding:4px 20px 24px;position:relative;}
+  .tlgroup{position:relative;padding-left:34px;}
+  .tlgroup::before{content:"";position:absolute;left:11px;top:26px;bottom:-6px;
+    width:1.5px;background:var(--line);}
+  .tlgroup:last-child::before{display:none;}
+  .tlhead{display:flex;align-items:center;gap:9px;margin-bottom:10px;position:relative;}
+  .tlnode{position:absolute;left:-34px;top:-2px;width:23px;height:23px;border-radius:50%;
+    background:var(--ink);color:var(--paper);display:flex;align-items:center;
+    justify-content:center;font-size:10px;font-weight:900;flex:0 0 auto;}
+  .tlnode.live{background:var(--red);}
+  .tlhead .t{font-size:14.5px;font-weight:900;letter-spacing:-.3px;}
+  .tlhead .ago{margin-left:auto;font-size:10.5px;color:var(--muted);font-weight:600;}
+  .tlcard{background:#fff;border:1.5px solid var(--line);border-radius:11px;
+    padding:11px 13px;margin-bottom:8px;}
+  .tlcard .ct{font-size:14px;font-weight:700;line-height:1.45;letter-spacing:-.2px;}
+  .tlcard .cm{margin-top:8px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  .tlcard .src{font-size:10px;color:var(--muted);font-weight:600;}
+  .tlcard .tag{background:var(--ink);color:var(--paper);font-size:9.5px;font-weight:800;
+    padding:2px 7px;border-radius:3px;}
+  .tlcard .hv{font-size:10.5px;color:var(--red);font-weight:800;
+    font-variant-numeric:tabular-nums;}
+  .tlcard .thumb{margin-top:9px;height:96px;border-radius:7px;
+    background:linear-gradient(135deg,#CFC6B8,#A99E8E);
+    display:flex;align-items:center;justify-content:center;
+    color:rgba(255,255,255,.82);font-size:10.5px;font-weight:700;letter-spacing:.5px;}
+  .tlcard.new{border-color:var(--red);}
+  .empty{text-align:center;padding:44px 20px;color:var(--muted);font-size:12.5px;
+    line-height:1.9;}
+  .pagedots{display:flex;justify-content:center;gap:5px;padding:9px 0 12px;}
+  .pd{width:5px;height:5px;border-radius:50%;background:#D8CFC0;}
+  .pd.on{background:var(--ink);width:14px;border-radius:3px;}
+</style>
+</head>
+<body>
+
+<!-- ================= 需求 1：平台按钮改造 ================= -->
+<div class="sec">
+  <div class="lbl">需求 1 · 改造前的样子 <em>— 问题：两个「用浏览器打开」分不清是哪个平台</em></div>
+  <div class="phone">
+    <div class="sb"><span>9:41</span><span>▮▮▮ ⌁ ▰</span></div>
+    <div class="det" style="padding-top:14px">
+      <h2>打假网红铁头一审获刑8年</h2>
+      <div class="corr">4 站同榜</div>
+      <div class="heatbar">
+        <div class="big">100</div>
+        <div class="t">综合热度<br>在 4 个平台同时上榜</div>
+      </div>
+      <div class="oldbtn fill">
+        <div class="olddot" style="background:#E6162D"></div>
+        <div class="pn">在微博搜索</div><div class="pd">第 8 名 · 33.8万</div>
+      </div>
+      <div class="oldbtn">
+        <div class="olddot" style="background:#C9C0B2"></div>
+        <div class="pn">用浏览器打开</div><div class="pd">第 13 名 · 676.0万</div>
+      </div>
+      <div class="oldbtn fill">
+        <div class="olddot" style="background:#FE2C55"></div>
+        <div class="pn">在抖音搜索</div><div class="pd">第 18 名 · 769.1万</div>
+      </div>
+      <div class="oldbtn">
+        <div class="olddot" style="background:#C9C0B2"></div>
+        <div class="pn">用浏览器打开</div><div class="pd">第 2 名</div>
+      </div>
+      <div style="font-size:10.5px;color:#9C9385;margin-top:11px">
+        ← 这两个到底哪个是百度、哪个是头条？看不出来。
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="lbl">需求 1 · 改造后 <em>— 平台名常在，并显示该平台自己的热搜名</em></div>
+  <div class="phone">
+    <div class="sb"><span>9:41</span><span>▮▮▮ ⌁ ▰</span></div>
+    <div class="det" style="padding-top:14px">
+      <h2>打假网红铁头一审获刑8年</h2>
+      <div class="corr">4 站同榜</div>
+      <div class="heatbar">
+        <div class="big">100</div>
+        <div class="t">综合热度<br>在 4 个平台同时上榜</div>
+      </div>
+      <div class="sechd"><span>各平台上的这条热搜</span><i>每行是该平台自己的标题</i></div>
+
+      <div class="newbtn fill">
+        <div class="r1">
+          <div class="dot" style="background:#E6162D"></div>
+          <span class="plat">微博</span>
+          <span class="act">在微博搜索</span>
+          <span class="num">第 8 名 · 33.8万</span>
+        </div>
+        <div class="r2"><span class="arw">↳</span><span>打假网红铁头一审获刑8年</span></div>
+      </div>
+
+      <div class="newbtn">
+        <div class="r1">
+          <div class="dot" style="background:#2932E1"></div>
+          <span class="plat">百度</span>
+          <span class="act">用浏览器打开</span>
+          <span class="num">第 13 名 · 676.0万</span>
+        </div>
+        <div class="r2"><span class="arw">↳</span><span>铁头敲诈勒索案一审宣判 获刑8年</span></div>
+      </div>
+
+      <div class="newbtn fill">
+        <div class="r1">
+          <div class="dot" style="background:#FE2C55"></div>
+          <span class="plat">抖音</span>
+          <span class="act">在抖音搜索</span>
+          <span class="num">第 18 名 · 769.1万</span>
+        </div>
+        <div class="r2"><span class="arw">↳</span><span>网红铁头一审获刑8年</span></div>
+      </div>
+
+      <div class="newbtn">
+        <div class="r1">
+          <div class="dot" style="background:#F04142"></div>
+          <span class="plat">头条</span>
+          <span class="act">用浏览器打开</span>
+          <span class="num">第 2 名</span>
+        </div>
+        <div class="r2"><span class="arw">↳</span><span>打假网红“铁头”一审获刑8年</span></div>
+      </div>
+
+      <div style="font-size:10.5px;color:#9C9385;margin-top:12px;line-height:1.7">
+        平台名（微博/百度/抖音/头条）永远在，一眼能分清；<br>
+        下面那行是<b style="color:#3A342C">该平台自己的热搜标题</b> ——
+        同一件事各平台措辞不同，点之前你就知道会搜什么。
+      </div>
+    </div>
+  </div>
+  <div class="note">
+    <b>改动要点</b><br>
+    ① <b>平台名提为主信息</b>，不再被「用浏览器打开」这句话盖掉<br>
+    ② 补上<b>该平台自己的热搜标题</b>（接口里每个平台都有独立标题，之前只存了代表条目的）<br>
+    ③ 动作降级成小标签：<code>在微博搜索</code> / <code>用浏览器打开</code> / <code>在B站打开</code><br>
+    ④ 按钮黑白填充仍表示"装了 App"，描边表示"走浏览器"，两者不再混淆
+  </div>
+</div>
+
+<!-- ================= 需求 2：时间线 ================= -->
+<div class="sec">
+  <div class="lbl">需求 2 · 时间线页 <em>— 新增第 2 个 tab，与综合榜/平台榜并列</em></div>
+  <div class="phone">
+    <div class="sb"><span>9:41</span><span>▮▮▮ ⌁ ▰</span></div>
+    <div class="hd">
+      <div class="kick">HOT SEARCH TIMELINE</div>
+      <h1>热榜时间线</h1>
+      <div class="rule"></div>
+      <div class="hmeta"><span>6 站在线 · 14:32 更新</span><span>今日新上榜 23 条</span></div>
+    </div>
+    <div class="tabs">
+      <div class="tab">综合</div><div class="tab on">时间线</div>
+      <div class="tab">微博</div><div class="tab">知乎</div><div class="tab">百度</div>
+    </div>
+
+    <div class="tl">
+      <div class="tlgroup">
+        <div class="tlhead">
+          <div class="tlnode live">新</div>
+          <span class="t">刚刚上榜</span><span class="ago">4 分钟前</span>
+        </div>
+        <div class="tlcard new">
+          <div class="ct">打假网红铁头一审获刑8年</div>
+          <div class="cm"><span class="tag">4 站同榜</span>
+            <span class="src">微博 · 百度 · 抖音 · 头条</span>
+            <span class="hv">热度 100</span></div>
+          <div class="thumb">百度提供的配图</div>
+        </div>
+        <div class="tlcard new">
+          <div class="ct">我国成功发射一箭六星</div>
+          <div class="cm"><span class="src">微博</span><span class="hv">热度 76</span></div>
+        </div>
+      </div>
+
+      <div class="tlgroup">
+        <div class="tlhead">
+          <div class="tlnode">时</div>
+          <span class="t">1 小时内</span><span class="ago">38 分钟前</span>
+        </div>
+        <div class="tlcard">
+          <div class="ct">中国女篮不敌法国无缘世界杯四强</div>
+          <div class="cm"><span class="tag">4 站同榜</span>
+            <span class="src">抖音 · 百度 · 头条 · 微博</span>
+            <span class="hv">热度 97</span></div>
+        </div>
+        <div class="tlcard">
+          <div class="ct">油价或迎二连涨</div>
+          <div class="cm"><span class="src">抖音</span><span class="hv">热度 73</span></div>
+        </div>
+      </div>
+
+      <div class="tlgroup">
+        <div class="tlhead">
+          <div class="tlnode">早</div>
+          <span class="t">今天早些时候</span><span class="ago">14:02</span>
+        </div>
+        <div class="tlcard">
+          <div class="ct">赵昭仪录节目突发哮喘</div>
+          <div class="cm"><span class="tag">2 站同榜</span>
+            <span class="src">百度 · 微博</span><span class="hv">热度 82</span></div>
+        </div>
+        <div class="tlcard">
+          <div class="ct">许绍雄去世近1年 代言品牌仍用其头像</div>
+          <div class="cm"><span class="src">百度 · 头条</span><span class="hv">热度 79</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note">
+    <b>样式参考了你给的图</b>：左侧竖线 + 圆形节点 + 分组标题 + 右对齐时间 + 卡片式条目，配图有就显示。<br>
+    但分组头换成了<b>时间段</b>（刚刚上榜 / 1 小时内 / 今天早些时候），因为热榜是同一批条目反复刷新，按"来源"分组没有意义。
+  </div>
+</div>
+
+<div class="sec">
+  <div class="lbl">需求 2 · 首次安装时的空状态 <em>— 这个必须提前说</em></div>
+  <div class="phone">
+    <div class="sb"><span>9:41</span><span>▮▮▮ ⌁ ▰</span></div>
+    <div class="hd">
+      <div class="kick">HOT SEARCH TIMELINE</div>
+      <h1>热榜时间线</h1>
+      <div class="rule"></div>
+      <div class="hmeta"><span>6 站在线 · 14:32 更新</span><span>正在建立基线</span></div>
+    </div>
+    <div class="tabs">
+      <div class="tab">综合</div><div class="tab on">时间线</div>
+      <div class="tab">微博</div>
+    </div>
+    <div class="empty">
+      <div style="font-size:26px;margin-bottom:12px">◔</div>
+      <b style="color:#3A342C;font-size:13.5px">已记录当前 268 条热搜</b><br>
+      下次刷新后，新冒出来的热搜会出现在这里<br>
+      <span style="font-size:11px">（后台约每 30 分钟检查一次）</span>
+    </div>
+  </div>
+  <div class="note" style="border-left-color:#C4342A">
+    <b class="hi" style="font-size:12.5px">⚠️ 必须让你知道的前提：接口不给发布时间</b><br><br>
+    我逐个查了所有平台，<b>没有一条热搜带发布时间</b>。唯一有真实时间的是 B站
+    （有 <code>pubdate</code>），其余全是空的。接口顶层只有一个榜单级的
+    <code>update_time</code>，那是"榜单什么时候刷新的"，不是"这条新闻什么时候发生的"。<br><br>
+    <b>所以时间线的"时间"只能是：我们第一次看到它上榜的时间。</b>
+    这需要 App 跑过至少两轮刷新才有效 —— 也就是<b>刚装完是空的</b>（上面那个空状态）。<br><br>
+    <b>我觉得这样反而是有用的</b>：它回答的是"<span class="hi">过去几小时有什么新东西冒出来</span>"，
+    而不是"这条新闻发生在几点"。后者你得去翻新闻 App，前者才是热榜的价值。<br><br>
+    <b>但也有别的选择</b>，见下方问题 ②。
+  </div>
+</div>
+
+<div class="sec">
+  <div class="note">
+    <b style="font-size:12.5px">需要你拍板的 4 件事</b><br><br>
+    <b>① 按钮改造这样行吗？</b><br>
+    平台名 + 该平台自己的热搜标题 + 动作标签。也可以更省：只在标题不同时才显示第二行。<br><br>
+    <b>② 时间线的"时间"用哪种？</b><br>
+    <b>A. 本地观察时间</b>（我推荐）— 完全可行，回答"过去几小时新冒出什么"，但首次安装是空的<br>
+    <b>B. 去接一个带发布时间的新闻源</b> — 能做真的"几点发生"，但要引入新接口（稳定性未知），且跟热榜是两套数据，混在一条时间线里会有点怪<br>
+    <b>C. 两者都要</b> — 热榜条目用观察时间，另外接一个新闻源做真时间线<br><br>
+    <b>③ 时间线记录多久？</b><br>
+    "今天"全部 / 最近 24 小时 / 最近 3 天。我建议<b>最近 24 小时</b>，久了全是没用的僵尸条目。<br><br>
+    <b>④ 时间线里的条目掉了榜怎么办？</b><br>
+    不标（就当历史）/ 标一个灰色的「已掉榜」/ 直接不显示。我建议<b>标「已掉榜」</b>，
+    这样你能看出哪些是"火过一阵就没了"。
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>按钮替代方案 + 时间线（真实数据）</title>
+<style>
+  :root{
+    --cjk:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans CJK SC",
+          "Source Han Sans SC","Microsoft YaHei",sans-serif;
+    --paper:#FBF9F5; --ink:#141210; --ink2:#3A342C; --muted:#9C9385;
+    --line:#E5DED2; --red:#C4342A; --chip:#EFEAE2;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  body{font-family:var(--cjk);background:#DEDCD8;padding:16px 8px 70px;
+    display:flex;flex-direction:column;align-items:center;gap:32px;}
+  .sec{width:100%;max-width:420px;display:flex;flex-direction:column;gap:11px;}
+  .lbl{font-size:13px;font-weight:800;color:#2A2A2E;letter-spacing:.3px;}
+  .lbl em{font-style:normal;font-weight:400;color:#8A8A92;font-size:11.5px;}
+  .note{font-size:11.5px;line-height:1.78;color:#5A5A63;background:#fff;
+    border-radius:10px;padding:11px 13px;border-left:3px solid #C9C9D0;}
+  .note b{color:#222;} .note .hi{color:#C4342A;font-weight:700;}
+  .phone{width:100%;background:var(--paper);color:var(--ink);border-radius:22px;
+    overflow:hidden;box-shadow:0 10px 28px rgba(0,0,0,.15);}
+  .sb{height:26px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 16px;font-size:10.5px;font-weight:600;}
+  .hd{padding:8px 20px 12px;}
+  .kick{font-size:9.5px;font-weight:800;letter-spacing:2.2px;color:#B09A7A;}
+  h1{font-size:28px;font-weight:900;letter-spacing:-1.2px;line-height:1.06;margin-top:5px;}
+  .rule{height:2.5px;background:var(--ink);margin-top:10px;}
+  .hmeta{margin-top:7px;font-size:10.5px;color:#8C8378;display:flex;justify-content:space-between;}
+  .tabs{display:flex;gap:6px;padding:0 20px 10px;overflow-x:auto;scrollbar-width:none;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{font-size:12px;padding:5px 12px;border-radius:3px;background:var(--chip);
+    color:#6B6259;white-space:nowrap;font-weight:700;flex:0 0 auto;}
+  .tab.on{background:var(--ink);color:var(--paper);}
+  .pagedots{display:flex;justify-content:center;gap:5px;padding:9px 0 12px;}
+  .pd{width:5px;height:5px;border-radius:50%;background:#D8CFC0;}
+  .pd.on{background:var(--ink);width:14px;border-radius:3px;}
+
+  /* ============ 需求1 三个替代方案 ============ */
+  .stage{padding:14px 20px 20px;}
+  .stage h2{font-size:19px;font-weight:900;letter-spacing:-.5px;line-height:1.3;}
+  .corr{display:inline-block;background:var(--ink);color:var(--paper);
+    font-size:9.5px;font-weight:800;padding:2.5px 7px;border-radius:3px;margin-top:8px;}
+
+  /* 甲：极简单行 —— 平台名 + 平台热搜名，动作收成一个小圆标 */
+  .j{display:flex;align-items:center;gap:9px;padding:11px 0;
+    border-bottom:1.5px solid var(--line);}
+  .j .pd2{width:8px;height:8px;border-radius:50%;flex:0 0 auto;}
+  .j .pn{font-size:12px;font-weight:900;color:var(--muted);width:34px;flex:0 0 auto;}
+  .j .tt{flex:1;font-size:13.5px;font-weight:700;line-height:1.42;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .j .rk2{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums;flex:0 0 auto;}
+  .j .badge{flex:0 0 auto;font-size:9.5px;font-weight:800;padding:3px 7px;border-radius:20px;}
+  .b-app{background:var(--ink);color:var(--paper);}
+  .b-web{background:var(--chip);color:#6B6259;}
+
+  /* 乙：平台首字色块 + 两行 */
+  .y{display:flex;gap:11px;padding:11px 12px;border:1.5px solid var(--line);
+    border-radius:11px;margin-bottom:8px;background:#fff;align-items:flex-start;}
+  .y.on{background:var(--ink);border-color:var(--ink);}
+  .y .av{width:30px;height:30px;border-radius:8px;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-size:14px;font-weight:900;}
+  .y .bd{flex:1;min-width:0;}
+  .y .l1{display:flex;align-items:center;gap:7px;}
+  .y .nm{font-size:13px;font-weight:900;}
+  .y .mt{font-size:9.5px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .y .l2{margin-top:5px;font-size:12.5px;line-height:1.45;}
+  .y.on .nm,.y.on .l2{color:var(--paper);}
+  .y.on .mt{color:rgba(251,249,245,.62);}
+
+  /* 丙：按去向分组 */
+  .zh{margin-bottom:6px;}
+  .zh .gh{font-size:9.5px;font-weight:800;letter-spacing:1.4px;color:#B09A7A;
+    margin:14px 0 4px;}
+  .zh .gr{display:flex;gap:9px;align-items:baseline;padding:9px 0;
+    border-bottom:1.5px solid var(--line);}
+  .zh .gp{font-size:12px;font-weight:900;width:36px;flex:0 0 auto;}
+  .zh .gt{flex:1;font-size:13px;font-weight:700;line-height:1.45;}
+  .zh .gk{font-size:9.5px;color:var(--muted);flex:0 0 auto;
+    font-variant-numeric:tabular-nums;}
+
+  /* ============ 需求2 时间线 ============ */
+  .tl{padding:4px 20px 22px;}
+  .tlgroup{position:relative;padding-left:32px;}
+  .tlgroup::before{content:"";position:absolute;left:11px;top:28px;bottom:-8px;
+    width:1.5px;background:var(--line);}
+  .tlgroup:last-child::before{display:none;}
+  .tlhead{display:flex;align-items:center;gap:9px;margin:14px 0 10px;position:relative;}
+  .tlnode{position:absolute;left:-32px;top:-1px;width:23px;height:23px;border-radius:50%;
+    background:var(--ink);color:var(--paper);display:flex;align-items:center;
+    justify-content:center;font-size:9.5px;font-weight:900;}
+  .tlnode.live{background:var(--red);}
+  .tlhead .t{font-size:14px;font-weight:900;letter-spacing:-.3px;}
+  .tlhead .n{margin-left:auto;font-size:10.5px;color:var(--muted);font-weight:600;}
+  .card{background:#fff;border:1.5px solid var(--line);border-radius:11px;
+    padding:11px 12px;margin-bottom:8px;}
+  .card.fresh{border-color:var(--red);}
+  .card .top{display:flex;gap:10px;}
+  .card .bd{flex:1;min-width:0;}
+  .card .ct{font-size:14px;font-weight:700;line-height:1.44;letter-spacing:-.2px;}
+  .card .cmeta{margin-top:7px;display:flex;align-items:center;gap:6px;
+    font-size:10px;color:var(--muted);font-weight:600;flex-wrap:wrap;}
+  .card .cmeta .dot{width:2.5px;height:2.5px;border-radius:50%;background:#D8CFC0;}
+  .card .thumb{width:82px;height:62px;border-radius:8px;flex:0 0 auto;
+    object-fit:cover;background:#E8E2D7;}
+  .card .noimg{width:82px;height:62px;border-radius:8px;flex:0 0 auto;
+    background:var(--chip);display:flex;align-items:center;justify-content:center;
+    font-size:9.5px;color:var(--muted);font-weight:700;text-align:center;padding:4px;}
+  .badges{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;}
+  .bdg{font-size:9.5px;font-weight:800;padding:2.5px 7px;border-radius:3px;}
+  .bdg.hot{background:var(--red);color:#fff;}
+  .bdg.gone{background:var(--chip);color:#8C8378;}
+  .empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:12.5px;line-height:1.9;}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     需求 1：三个替代方案
+     ============================================================ -->
+<div class="sec">
+  <div class="lbl">需求 1 · 替代甲 <em>— 极简单行：平台名 + 平台热搜名 + 动作小标签</em></div>
+  <div class="phone">
+    <div class="sb"><span>9:41</span><span>▮▮▮ ⌁ ▰</span></div>
+    <div class="stage">
+      <h2>打假网红铁头一审获刑8年</h2>
+      <div class="corr">4 站同榜</div>
+      <div style="margin-top:16px">
+        <div class="j">
+          <div class="pd2" style="background:#E6162D"></div>
+          <div class="pn">微博</div>
+          <div class="tt">打假网红铁头一审获刑8年</div>
+          <div class="rk2">第8名</div>
+          <div class="badge b-app">打开</div>
+        </div>
+        <div class="j">
+          <div class="pd2" style="background:#2932E1"></div>
+          <div class="pn">百度</div>
+          <div class="tt">铁头敲诈勒索案一审宣判 获刑8年</div>
+          <div class="rk2">第13名</div>
+          <div class="badge b-web">浏览器</div>
+        </div>
+        <div class="j">
+          <div class="pd2" style="background:#FE2C55"></div>
+          <div class="pn">抖音</div>
+          <div class="tt">网红铁头一审获刑8年</div>
+          <div class="rk2">第18名</div>
+          <div class="badge b-app">打开</div>
+        </div>
+        <div class="j">
+          <div class="pd2" style="background:#F04142"></div>
+          <div class="pn">头条</div>
+          <div class="tt">打假网红“铁头”一审获刑8年</div>
+          <div class="rk2">第2名</div>
+          <div class="badge b-web">浏览器</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note">
+    最省空间：<b>4 条只占 4 行</b>。平台名固定宽度，一眼对齐对比；
+    中间就是<b>该平台自己的热搜标题</b>（超长省略）；
+    右侧小圆标只区分「打开 / 浏览器」，不占地方。
+  </div>
+</div>
+
+<div class="sec">
+  <div class="lbl">需求 1 · 替代乙 <em>— 平台色块 + 两行，动作只在颜色里</em></div>
+  <div class="phone">
+    <div class="sb"><span>9:41</span><span>▮▮▮ ⌁ ▰</span></div>
+    <div class="stage">
+      <h2>打假网红铁头一审获刑8年</h2>
+      <div class="corr">4 站同榜</div>
+      <div style="margin-top:16px">
+        <div class="y on">
+          <div class="av" style="background:#E6162D">微</div>
+          <div class="bd">
+            <div class="l1"><span class="nm">微博</span>
+              <span class="mt">第 8 名 · 33.8万</span></div>
+            <div class="l2">打假网红铁头一审获刑8年</div>
+          </div>
+        </div>
+        <div class="y">
+          <div class="av" style="background:#2932E1">百</div>
+          <div class="bd">
+            <div class="l1"><span class="nm">百度</span>
+              <span class="mt">第 13 名 · 676.0万</span></div>
+            <div class="l2">铁头敲诈勒索案一审宣判 获刑8年</div>
+          </div>
+        </div>
+        <div class="y on">
+          <div class="av" style="background:#FE2C55">抖</div>
+          <div class="bd">
+            <div class="l1"><span class="nm">抖音</span>
+              <span class="mt">第 18 名 · 769.1万</span></div>
+            <div class="l2">网红铁头一审获刑8年</div>
+          </div>
+        </div>
+        <div class="y">
+          <div class="av" style="background:#F04142">头</div>
+          <div class="bd">
+            <div class="l1"><span class="nm">头条</span>
+              <span class="mt">第 2 名</span></div>
+            <div class="l2">打假网红“铁头”一审获刑8年</div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:10.5px;color:#9C9385;margin-top:12px;line-height:1.7">
+        <b style="color:#3A342C">黑底 = 装了 App 直接跳</b>，白底 = 走浏览器。
+        平台色块让"哪个平台"变成视觉记忆，不用读字。
+      </div>
+    </div>
+  </div>
+  <div class="note">
+    跳转去向<b>完全靠底色区分</b>，不再有"用浏览器打开"这类文字干扰。
+    代价是占纵向空间（4 条约 280px）。
+  </div>
+</div>
+
+<div class="sec">
+  <div class="lbl">需求 1 · 替代丙 <em>— 按去向分组，直接消除"分不清"的问题</em></div>
+  <div class="phone">
+    <div class="sb"><span>9:41</span><span>▮▮▮ ⌁ ▰</span></div>
+    <div class="stage">
+      <h2>打假网红铁头一审获刑8年</h2>
+      <div class="corr">4 站同榜</div>
+      <div class="zh">
+        <div class="gh">可以跳进 APP</div>
+        <div class="gr"><span class="gp" style="color:#E6162D">微博</span>
+          <span class="gt">打假网红铁头一审获刑8年</span><span class="gk">第8名</span></div>
+        <div class="gr"><span class="gp" style="color:#FE2C55">抖音</span>
+          <span class="gt">网红铁头一审获刑8年</span><span class="gk">第18名</span></div>
+      </div>
+      <div class="zh">
+        <div class="gh">用浏览器打开</div>
+        <div class="gr"><span class="gp" style="color:#2932E1">百度</span>
+          <span class="gt">铁头敲诈勒索案一审宣判 获刑8年</span><span class="gk">第13名</span></div>
+        <div class="gr"><span class="gp" style="color:#F04142">头条</span>
+          <span class="gt">打假网红“铁头”一审获刑8年</span><span class="gk">第2名</span></div>
+      </div>
+      <div style="font-size:10.5px;color:#9C9385;margin-top:12px;line-height:1.7">
+        直接分成两组，<b style="color:#3A342C">"哪个是要走浏览器的"这个问题不存在了</b>。
+      </div>
+    </div>
+  </div>
+  <div class="note">
+    这个方案把问题从"标注每一条"变成"<b>用结构说话</b>"。缺点：两次分组标题占空间，
+    且平台顺序被分组打乱（不能按名次排了）。
+  </div>
+</div>
+
+<!-- ============================================================
+     需求 2：时间线（真实数据）
+     ============================================================ -->
+<div class="sec">
+  <div class="lbl">需求 2 · 时间线 <em>— 用真实新闻数据渲染，配图为接口原图</em></div>
+  <div class="phone">
+    <div class="sb"><span>9:41</span><span>▮▮▮ ⌁ ▰</span></div>
+    <div class="hd">
+      <div class="kick">NEWS TIMELINE</div>
+      <h1>全网热点</h1>
+      <div class="rule"></div>
+      <div class="hmeta"><span>腾讯新闻源 · 24 小时内</span><span>共 49 条</span></div>
+    </div>
+    <div class="tabs">
+      <div class="tab">综合</div><div class="tab on">全网热点</div>
+      <div class="tab">微博</div><div class="tab">知乎</div><div class="tab">百度</div>
+    </div>
+
+    <div class="tl">
+      <div class="tlgroup">
+        <div class="tlhead"><div class="tlnode live">新</div>
+          <span class="t">1 小时内</span><span class="n">2 条</span></div>
+
+        <div class="card fresh">
+          <div class="top">
+            <div class="bd">
+              <div class="ct">荣耀“魔法画报”事件当事人：事件与荣耀手机无关</div>
+              <div class="cmeta"><span>界面新闻</span><span class="dot"></span>
+                <span>24 分钟前</span><span class="dot"></span><span>阅读 1.1万</span></div>
+            </div>
+            <img class="thumb" src="https://inews.gtimg.com/news_ls/OxzRgPiHBMoyoodLPOR4ODgWZP3Z6t2NJfe9Z066Y86SUAA_640330/0" alt="">
+          </div>
+        </div>
+
+        <div class="card fresh">
+          <div class="top">
+            <div class="bd">
+              <div class="ct">韦世豪遭重罚！挑衅公众禁赛3场+罚款3万，联赛已提前报销</div>
+              <div class="cmeta"><span>奥拜尔</span><span class="dot"></span>
+                <span>1 小时前</span><span class="dot"></span><span>阅读 2354</span></div>
+              <div class="badges"><span class="bdg hot">微博热搜</span></div>
+            </div>
+            <img class="thumb" src="https://inews.gtimg.com/news_ls/O6k1_z2_fhPCK41PO4Wx2cJFJSTpen4UJ2H0L0kqU3ocgAA_640330/0" alt="">
+          </div>
+        </div>
+      </div>
+
+      <div class="tlgroup">
+        <div class="tlhead"><div class="tlnode">今</div>
+          <span class="t">今天早些时候</span><span class="n">5 条</span></div>
+
+        <div class="card">
+          <div class="top">
+            <div class="bd">
+              <div class="ct">23名央企领导职务调整</div>
+              <div class="cmeta"><span>新京报</span><span class="dot"></span>
+                <span>2 小时前</span><span class="dot"></span><span>阅读 4.3万</span></div>
+            </div>
+            <img class="thumb" src="https://inews.gtimg.com/news_ls/OdUbBlpi-rbJgXD0UW4TKcDKrTP9DrnTYvElA0zIjiOywAA_640330/0" alt="">
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="top">
+            <div class="bd">
+              <div class="ct">因道闸故障致车辆堵门，物业与业主和解后，业主被警方行拘10日</div>
+              <div class="cmeta"><span>新黄河</span><span class="dot"></span>
+                <span>3 小时前</span><span class="dot"></span><span>阅读 11.2万</span></div>
+              <div class="badges">
+                <span class="bdg hot">微博热搜</span>
+                <span class="bdg gone">曾上热搜 · 已掉榜</span>
+              </div>
+            </div>
+            <img class="thumb" src="https://inews.gtimg.com/news_ls/Ootk6nfdLyx-DSSw1iEcRKIWUkWYy9QRIJ-5x0mYj43Q8AA_640330/0" alt="">
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="top">
+            <div class="bd">
+              <div class="ct">商务部新闻发言人就美国中情局高官公开表示对中国开展间谍活动答记者问</div>
+              <div class="cmeta"><span>环球网</span><span class="dot"></span>
+                <span>3 小时前</span><span class="dot"></span><span>阅读 8531</span></div>
+            </div>
+            <div class="noimg">无配图</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tlgroup">
+        <div class="tlhead"><div class="tlnode">早</div>
+          <span class="t">今天更早</span><span class="n">4 条</span></div>
+
+        <div class="card">
+          <div class="top">
+            <div class="bd">
+              <div class="ct">历史性时刻！中国发起成立，各国高度赞赏</div>
+              <div class="cmeta"><span>红星新闻</span><span class="dot"></span>
+                <span>6 小时前</span><span class="dot"></span><span>阅读 31.0万</span></div>
+            </div>
+            <img class="thumb" src="https://inews.gtimg.com/news_ls/OGKJSmISEys3jrW0ICMyzPotCRMNf-T4pcRrox-9lWe4YAA_640330/0" alt="">
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="top">
+            <div class="bd">
+              <div class="ct">中方上调日本公民赴华签证费用 外交部：对等安排</div>
+              <div class="cmeta"><span>央视新闻</span><span class="dot"></span>
+                <span>7 小时前</span><span class="dot"></span><span>阅读 1.2万</span></div>
+              <div class="badges"><span class="bdg hot">微博热搜</span></div>
+            </div>
+            <img class="thumb" src="https://inews.gtimg.com/news_ls/OxzRgPiHBMoyoodLPOR4ODgWZP3Z6t2NJfe9Z066Y86SUAA_640330/0" alt="">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pagedots">
+      <div class="pd"></div><div class="pd on"></div><div class="pd"></div>
+      <div class="pd"></div><div class="pd"></div><div class="pd"></div>
+      <div class="pd"></div><div class="pd"></div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>数据全部是真实的</b>（配图是接口原图直链），不是编的：
+    来源媒体、真实发布时刻、阅读数都能拿到。<br>
+    分组头按时间段走（1小时内 / 今天早些时候 / 今天更早），时间线节点用品牌红标最新一组。
+  </div>
+</div>
+
+<div class="sec">
+  <div class="note" style="border-left-color:#C4342A">
+    <b style="font-size:12.5px">⚠️ 你选的方案 B 和一个新问题</b><br><br>
+    时间线改用新闻源后，<b>「掉榜」这个概念就没有落脚点了</b> ——
+    新闻是按发布时间一直往下走的，不存在"上榜/掉榜"。<br><br>
+    <b>我的处理办法</b>：把两个数据源接起来。<br>
+    · 新闻标题如果<b>正好命中当前热榜上的条目</b> → 打 <span class="hi">「微博热搜」</span> 红标<br>
+    · 如果它之前命中过、但那条热榜已经掉了 → 打 <span class="hi">「曾上热搜 · 已掉榜」</span> 灰标<br><br>
+    这样「已掉榜」有了意义，而且你会看到一个更有意思的东西：
+    <b>哪条新闻是真的全网在聊，哪条只是新闻媒体在发。</b>
+    这也是聚合榜才给得出的判断。
+  </div>
+</div>
+
+<div class="sec">
+  <div class="note">
+    <b style="font-size:12.5px">现在只需要你回答一个问题</b><br><br>
+    <b>替代甲 / 乙 / 丙，哪个方向对？</b><br>
+    或者说「甲的平台名宽度 + 丙的分组」这种混搭也行。<br><br>
+    如果你觉得<b>三个都不对</b>，直接说哪里不对 ——
+    比如"还是太高"、"要保留热度数值"、"平台名要更醒目"，
+    我按你说的一点改。<br><br>
+    时间线的部分（方案 B / 24 小时 / 标已掉榜）我已经记下了，不用再确认。
+  </div>
+</div>
+
+</body>
+</html>

@@ -142,18 +142,32 @@
 所以按钮分两种状态：**「打开」（精确直达）** 和 **「搜索」（只能到结果页）**。
 界面里明确区分，不糊弄成一样 —— 详情页底部有一行小字解释这个区别。
 
-### 三层静默降级
+### 跳转逻辑
+
+**先看 App 装没装：装了直接跳 App，没装才落到浏览器。**
+
+`PlatformLauncher.isInstalled()` 用 `getPackageInfo` 判断，然后：
 
 ```
-① App 内精确页  →  ② App 内搜索结果  →  ③ https 链接  →  ④ 系统浏览器
+装了  →  ① App 内精确页  →  ② App 内搜索  →  ③ https(App Links)  →  ④ 浏览器
+没装  →  直接浏览器
 ```
 
-每一层都用 `setPackage` + `resolveActivity` 探测：
-- `setPackage` 把候选限定到目标 App，**不会弹「选择应用」选择框**
-- 探测不到就无声往下走，最终落到浏览器
+详情页的按钮文案**如实反映去向**：装了显示「在微博打开」，没装显示「用浏览器打开」。
 
-因为各家 App 的 scheme 属于内部约定、可能随版本变化，代码里**不写死假设**，
-只保证能一路降级而不报错。
+> ⚠️ **必须踩过的一个坑：Android 11 软件包可见性**
+>
+> API 30 起，`targetSdk >= 30` 的应用**默认看不到未声明的包** ——
+> `getPackageInfo` 抛 NameNotFound、`resolveActivity` 返回 null。
+> 只靠 `resolveActivity` 判断的后果是：**明明装了 App，点击却总是跳到浏览器。**
+>
+> 解法是在 `AndroidManifest.xml` 里加 `<queries>` 段显式声明这 6 个包名。
+> 新增平台时**记得把包名也加进去**，否则该平台的跳转永远走不到 App。
+
+`setPackage` 把候选限定到目标 App，装了就一定能处理，**不会弹「选择应用」框**。
+
+各家 App 的 scheme 属于内部约定、可能随版本变化，所以每一层都做 `resolveActivity`
+探测后无声往下走，不写死假设、不报错。
 
 ---
 

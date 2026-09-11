@@ -6,6 +6,9 @@
 package com.minis.hotrank.ui
 
 import androidx.activity.compose.BackHandler
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -52,6 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -71,8 +75,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** 第 0 页是综合榜，之后每个平台一页。 */
-private val TABS: List<String> = listOf("综合") + Platform.entries.map { it.label }
+/** 第 0 页综合榜，第 1 页全网热点时间线，之后每个平台一页。 */
+private val TABS: List<String> = listOf("综合", "全网热点") + Platform.entries.map { it.label }
+
+private const val TIMELINE_PAGE = 1
+private const val PLATFORM_OFFSET = 2
 
 @Composable
 fun HotScreen(vm: HotViewModel = viewModel()) {
@@ -81,6 +88,7 @@ fun HotScreen(vm: HotViewModel = viewModel()) {
     val pagerState = rememberPagerState(pageCount = { TABS.size })
     val tabListState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     var detail by remember { mutableStateOf<com.minis.hotrank.model.DetailData?>(null) }
     var showSubscribe by remember { mutableStateOf(false) }
@@ -98,7 +106,11 @@ fun HotScreen(vm: HotViewModel = viewModel()) {
 
         Column(Modifier.fillMaxSize()) {
 
-            Header(state, onSettings = { showSettings = true })
+            Header(
+                state = state,
+                timelineMode = pagerState.currentPage == TIMELINE_PAGE,
+                onSettings = { showSettings = true },
+            )
 
             TabsRow(
                 selected = pagerState.currentPage,
@@ -123,8 +135,14 @@ fun HotScreen(vm: HotViewModel = viewModel()) {
                         ) { page ->
                             if (page == 0) {
                                 AggregatePage(state, onOpen = { detail = it.toDetail() })
+                            } else if (page == TIMELINE_PAGE) {
+                                TimelinePage(
+                                    grouped = state.timelineGrouped,
+                                    failed = state.timelineFailed,
+                                    onOpen = { openNews(context, it.url) },
+                                )
                             } else {
-                                val platform = Platform.entries[page - 1]
+                                val platform = Platform.entries[page - PLATFORM_OFFSET]
                                 PlatformPage(
                                     state = state,
                                     platform = platform,
@@ -193,7 +211,7 @@ fun HotScreen(vm: HotViewModel = viewModel()) {
 // ---------------------------------------------------------------- 头部
 
 @Composable
-private fun Header(state: HotUiState, onSettings: () -> Unit) {
+private fun Header(state: HotUiState, timelineMode: Boolean, onSettings: () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -248,9 +266,15 @@ private fun Header(state: HotUiState, onSettings: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
             )
-            if (state.corroboratedCount > 0) {
+            // 右侧统计随当前页变化：时间线页关心"多少条在热搜上"，其它页关心"多少条多站同榜"
+            val badge = if (timelineMode) {
+                state.timeline.size.takeIf { it > 0 }?.let { "24 小时内 $it 条" }
+            } else {
+                state.corroboratedCount.takeIf { it > 0 }?.let { "$it 个多站同榜" }
+            }
+            badge?.let {
                 Text(
-                    text = "${state.corroboratedCount} 个多站同榜",
+                    text = it,
                     fontSize = 10.5.sp,
                     fontWeight = FontWeight.Bold,
                     color = HeatRed,
@@ -617,3 +641,17 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
 
 private fun clock(timestamp: Long): String =
     SimpleDateFormat("HH:mm", Locale.CHINA).format(Date(timestamp))
+
+/**
+ * 时间线条目是新闻文章，不属于任何平台的热榜条目 —— 不像热榜那样有对应 App 内的位置，
+ * 所以直接交给系统浏览器/新闻 App 处理。
+ */
+private fun openNews(context: Context, url: String) {
+    if (url.isBlank()) return
+    runCatching {
+        context.startActivity(
+            Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+    }
+}
