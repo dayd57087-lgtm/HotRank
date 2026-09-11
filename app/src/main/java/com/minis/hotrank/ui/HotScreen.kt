@@ -70,6 +70,7 @@ import com.minis.hotrank.model.Platform
 import com.minis.hotrank.model.RankedEvent
 import com.minis.hotrank.model.toDetail
 import com.minis.hotrank.ui.theme.HeatRed
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -94,9 +95,23 @@ fun HotScreen(vm: HotViewModel = viewModel()) {
     var showSubscribe by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
 
-    // 翻页时把选中的 tab 滚进可视区，否则滑到 B站 时 tab 还停在左边
+    // 翻页时把选中的 tab 滚进可视区，否则滑到 B站 时 tab 还停在左边。
+    //
+    // ⚠️ animateScrollToItem 在列表尚未完成测量时会抛异常 ——
+    // 首屏因为已经在 0 位置、内部直接返回所以不崩，一切页就炸。
+    // 这里加范围检查 + 异常兜底：tab 没滚动只是体验差一点，绝不该让整个页面挂掉。
+    // 注意必须显式重抛 CancellationException —— 用 runCatching 会连协程取消一起吞掉，
+    // 破坏切页时的取消语义。
     LaunchedEffect(pagerState.currentPage) {
-        tabListState.animateScrollToItem(pagerState.currentPage)
+        val target = pagerState.currentPage
+        if (target !in TABS.indices) return@LaunchedEffect
+        try {
+            tabListState.animateScrollToItem(target)
+        } catch (cancel: CancellationException) {
+            throw cancel
+        } catch (ignored: Throwable) {
+            // 滚动失败无所谓，不影响页面内容
+        }
     }
 
     // 详情是全屏页时，系统返回键要能关掉它
@@ -142,13 +157,17 @@ fun HotScreen(vm: HotViewModel = viewModel()) {
                                     onOpen = { openNews(context, it.url) },
                                 )
                             } else {
-                                val platform = Platform.entries[page - PLATFORM_OFFSET]
-                                PlatformPage(
-                                    state = state,
-                                    platform = platform,
-                                    aggregateRankOf = vm::aggregateRankOf,
-                                    onOpen = { detail = it.toDetail() },
-                                )
+                                // getOrNull 而不是直接下标：Pager 组合边缘页时若传来越界索引，
+                                // 直接索引会 IndexOutOfBounds 崩掉整个界面
+                                val platform = Platform.entries.getOrNull(page - PLATFORM_OFFSET)
+                                if (platform != null) {
+                                    PlatformPage(
+                                        state = state,
+                                        platform = platform,
+                                        aggregateRankOf = vm::aggregateRankOf,
+                                        onOpen = { detail = it.toDetail() },
+                                    )
+                                }
                             }
                         }
                     }

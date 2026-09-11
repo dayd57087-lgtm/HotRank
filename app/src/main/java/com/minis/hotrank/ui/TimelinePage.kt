@@ -69,7 +69,9 @@ fun TimelinePage(
             }
             items(
                 count = items.size,
-                key = { index -> items[index].id },
+                // key 用「分组+位置」而不是新闻 id：即使数据源返回重复 id，
+                // LazyColumn 也不会因为 key 冲突抛 "Key was already used" 直接崩掉
+                key = { index -> "entry-${bucket.name}-$index" },
             ) { index ->
                 TimelineRow(items[index]) { onOpen(items[index]) }
             }
@@ -139,15 +141,20 @@ private fun TimelineRow(entry: TimelineEntry, onClick: () -> Unit) {
                 .background(MaterialTheme.colorScheme.outlineVariant)
         )
         Spacer(Modifier.width(19.dp))
-        TimelineCard(entry, onClick)
+        // weight 而不是内部的 fillMaxWidth：Row 里若 child 自己占满宽度，
+        // 加上前面的竖线和间距会超出容器被裁切
+        TimelineCard(entry, Modifier.weight(1f), onClick)
     }
 }
 
 @Composable
-private fun TimelineCard(entry: TimelineEntry, onClick: () -> Unit) {
+private fun TimelineCard(
+    entry: TimelineEntry,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .clip(RoundedCornerShape(11.dp))
             .background(MaterialTheme.colorScheme.surface)
             .clickable(onClick = onClick)
