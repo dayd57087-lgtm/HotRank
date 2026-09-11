@@ -91,24 +91,47 @@ def main():
     names = [n for n in zf.namelist() if re.search(r"assemble|compile|build", n, re.I)]
     names += [n for n in zf.namelist() if n not in names]
 
+    # GitHub 日志每行前面都带 ISO 时间戳，判断前必须先剥掉，否则 startswith("e: ") 永远不匹配
+    stamp = re.compile(r"^\d{4}-\d\d-\d\dT[\d:.]+Z\s?")
+
     for name in names:
         text = zf.read(name).decode("utf-8", "replace")
-        # Kotlin 编译器错误以 "e: " 开头，Gradle 失败以 FAILURE/What went wrong 标记
-        hits = [ln for ln in text.splitlines()
-                if ln.startswith("e: ") or "What went wrong" in ln
-                or ln.startswith("> ") or "FAILED" in ln
-                or "Caused by" in ln or "error:" in ln]
+        hits = []
+        for raw in text.splitlines():
+            line = stamp.sub("", raw).rstrip()
+            if not line:
+                continue
+            # Kotlin 编译器错误：e: file:///... : (12, 34): error text
+            if line.startswith("e: ") or "error:" in line.lower():
+                hits.append(line)
+            elif line.startswith("* What went wrong") or line.startswith("Caused by") \
+                    or "FAILED" in line or line.startswith("> Task"):
+                hits.append(line)
+
+        if any(h.startswith("e: ") for h in hits):
+            print(f"───── {name} ─────")
+            for ln in hits:
+                if ln.startswith("e: ") or "FAILED" in ln:
+                    print("  " + ln[:400])
+            print()
+            return
+
+    # 没找到编译错误就打印所有警告行
+    for name in names:
+        text = zf.read(name).decode("utf-8", "replace")
+        hits = [stamp.sub("", l).rstrip() for l in text.splitlines()
+                if "What went wrong" in l or "FAILED" in l or "Caused by" in l]
         if hits:
             print(f"───── {name} ─────")
             for ln in hits[:args.lines]:
-                print("  " + ln.strip()[:220])
+                print("  " + ln[:300])
             print()
             return
 
     print("没找到明显报错行，打印最后一个日志文件的尾部：")
     text = zf.read(names[-1]).decode("utf-8", "replace")
     for ln in text.splitlines()[-args.lines:]:
-        print("  " + ln.rstrip()[:220])
+        print("  " + stamp.sub("", ln).rstrip()[:220])
 
 
 if __name__ == "__main__":

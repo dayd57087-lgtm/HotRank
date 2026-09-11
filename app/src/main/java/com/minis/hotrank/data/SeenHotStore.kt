@@ -5,6 +5,7 @@ import com.minis.hotrank.model.HotItem
 import com.minis.hotrank.model.HotLink
 import com.minis.hotrank.model.Platform
 import com.minis.hotrank.model.TimelineEntry
+import org.json.JSONArray
 import org.json.JSONObject
 
 /**
@@ -18,15 +19,18 @@ import org.json.JSONObject
  *
  * 这样"已掉榜"才有落脚点，而且顺带解决了一个更有价值的问题：
  * 区分"真的全网在聊"和"只是媒体在发"。
+ *
+ * 注意：内部全部用显式 for 循环而不是嵌套 forEach ——
+ * 嵌套 forEach 里的 return@forEach 容易指向错误的那一层，可读性也差。
  */
 class SeenHotStore(context: Context) {
 
     private val prefs = context.applicationContext
         .getSharedPreferences("hot_seen", Context.MODE_PRIVATE)
 
-    /** 归一化标题 -> { 平台 -> (名次, 最后见到的时间) } */
     private class Sighting(val platform: Platform, val rank: Int, val seenAt: Long)
 
+    /** 归一化标题 -> 该标题在各平台上最后一次见到的样子 */
     private val cache = LinkedHashMap<String, MutableMap<Platform, Sighting>>()
 
     /** 把当前热榜上的所有条目记为"见过"。每次刷新热榜后调用。 */
@@ -34,12 +38,12 @@ class SeenHotStore(context: Context) {
         load()
         val now = System.currentTimeMillis()
 
-        byPlatform.forEach { (platform, items) ->
-            items.forEach { item ->
+        for ((platform, items) in byPlatform) {
+            for (item in items) {
                 val key = RankingEngine.normalize(item.title)
-                if (key.isEmpty()) return@forEach
-                cache.getOrPut(key) { LinkedHashMap() }[platform] =
-                    Sighting(platform, item.rank, now)
+                if (key.isEmpty()) continue
+                val slots = cache.getOrPut(key) { LinkedHashMap() }
+                slots[platform] = Sighting(platform, item.rank, now)
             }
         }
         prune(now)
@@ -60,19 +64,23 @@ class SeenHotStore(context: Context) {
         val found = LinkedHashMap<Platform, HotLink>()
 
         // 优先认当前榜上的（live = true）
-        liveHot[norm]?.let { found[it.platform] = it }
-        if (found.isEmpty()) {
-            liveHot.entries.firstOrNull { (key, _) ->
-                RankingEngine.similarity(norm, key) >= MATCH_THRESHOLD
-            }?.let { (_, link) -> found[link.platform] = link }
+        val exact = liveHot[norm]
+        if (exact != null) {
+            found[exact.platform] = exact
+        } else {
+            for ((key, link) in liveHot) {
+                if (RankingEngine.similarity(norm, key) >= MATCH_THRESHOLD) {
+                    found[link.platform] = link
+                    break
+                }
+            }
         }
 
         // 再补历史记录（live = false）—— 同一平台当前已在榜就不重复加
-        cache.forEach { (key, byPlatform) ->
-            if (found.size >= MAX_LINKS) return@forEach
-            if (byPlatform.keys.all { it in found.keys }) return@forEach
-            if (RankingEngine.similarity(norm, key) < MATCH_THRESHOLD) return@forEach
-            byPlatform.forEach { (platform, sighting) ->
+        for ((key, byPlatform) in cache) {
+            if (found.size >= MAX_LINKS) break
+            if (RankingEngine.similarity(norm, key) < MATCH_THRESHOLD) continue
+            for ((platform, sighting) in byPlatform) {
                 if (platform !in found) {
                     found[platform] = HotLink(platform, sighting.rank, live = false)
                 }
@@ -85,10 +93,10 @@ class SeenHotStore(context: Context) {
     /** 当前热榜的 归一化标题 -> HotLink，供 linksFor 优先匹配。 */
     fun liveIndex(byPlatform: Map<Platform, List<HotItem>>): Map<String, HotLink> {
         val out = HashMap<String, HotLink>()
-        byPlatform.forEach { (platform, items) ->
-            items.forEach { item ->
+        for ((platform, items) in byPlatform) {
+            for (item in items) {
                 val key = RankingEngine.normalize(item.title)
-                if (key.isEmpty()) return@forEach
+                if (key.isEmpty()) continue
                 val existing = out[key]
                 // 同一标题在多个平台出现时，保留名次最好的那个
                 if (existing == null || item.rank < existing.rank) {
@@ -101,10 +109,13 @@ class SeenHotStore(context: Context) {
 
     private fun prune(now: Long) {
         val limit = now - RETENTION
-        cache.entries.removeAll { (_, byPlatform) ->
-            byPlatform.entries.removeAll { it.value.seenAt < limit }
-            byPlatform.isEmpty()
+        val emptyKeys = ArrayList<String>()
+        for ((key, byPlatform) in cache) {
+            val stale = byPlatform.filterValues { it.seenAt < limit }.keys
+            stale.forEach { byPlatform.remove(it) }
+            if (byPlatform.isEmpty()) emptyKeys += key
         }
+        emptyKeys.forEach { cache.remove(it) }
     }
 
     private fun load() {
@@ -112,12 +123,12 @@ class SeenHotStore(context: Context) {
         val raw = prefs.getString(KEY, null) ?: return
         runCatching {
             val root = JSONObject(raw)
-            root.keys().forEach { key ->
+            for (key in root.keys()) {
+                val obj = root.optJSONObject(key) ?: continue
                 val byPlatform = LinkedHashMap<Platform, Sighting>()
-                val obj = root.optJSONObject(key) ?: return@forEach
-                obj.keys().forEach { apiId ->
-                    val platform = Platform.entries.firstOrNull { it.apiId == apiId } ?: return@forEach
-                    val arr = obj.optJSONArray(apiId) ?: return@forEach
+                for (apiId in obj.keys()) {
+                    val platform = Platform.entries.firstOrNull { it.apiId == apiId } ?: continue
+                    val arr = obj.optJSONArray(apiId) ?: continue
                     byPlatform[platform] = Sighting(
                         platform = platform,
                         rank = arr.optInt(0, 0),
@@ -131,10 +142,12 @@ class SeenHotStore(context: Context) {
 
     private fun save() {
         val root = JSONObject()
-        cache.entries.takeLast(MAX_KEYS).forEach { (key, byPlatform) ->
+        // takeLast 只对 List 定义，Set 必须先 toList —— 直接对 entries 调用会编译不过
+        val recent = cache.entries.toList().takeLast(MAX_KEYS)
+        for ((key, byPlatform) in recent) {
             val obj = JSONObject()
-            byPlatform.forEach { (platform, sighting) ->
-                obj.put(platform.apiId, org.json.JSONArray().put(sighting.rank).put(sighting.seenAt))
+            for ((platform, sighting) in byPlatform) {
+                obj.put(platform.apiId, JSONArray().put(sighting.rank).put(sighting.seenAt))
             }
             root.put(key, obj)
         }
