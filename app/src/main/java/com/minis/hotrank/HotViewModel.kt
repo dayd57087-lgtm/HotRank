@@ -8,12 +8,14 @@ import com.minis.hotrank.data.DetailForm
 import com.minis.hotrank.data.HotRepository
 import com.minis.hotrank.data.Subscription
 import com.minis.hotrank.data.SubscriptionStore
+import com.minis.hotrank.data.WidgetStore
 import com.minis.hotrank.model.HotItem
 import com.minis.hotrank.model.Platform
 import com.minis.hotrank.model.RankedEvent
 import com.minis.hotrank.model.TimeBucket
 import com.minis.hotrank.model.TimelineEntry
 import com.minis.hotrank.notify.Notifier
+import com.minis.hotrank.widget.HotRankWidget
 import com.minis.hotrank.work.KeywordScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -85,6 +87,13 @@ class HotViewModel(app: Application) : AndroidViewModel(app) {
 
             val feed = repo.load(force)
             crossLink = feed.crossLink
+
+            // 顺手把结果写一份给桌面小组件 —— App 打开过之后小组件就立刻是最新的，
+            // 不用等后台任务下一轮调度
+            if (feed.events.isNotEmpty()) {
+                WidgetStore(getApplication()).write(feed.events, feed.updatedAt)
+                HotRankWidget.renderAll(getApplication())
+            }
 
             _state.value = _state.value.copy(
                 loading = false,

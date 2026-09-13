@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  行背景：底部一条淡分割线。
+  做成行自身背景而不是独立的 View 分隔条 —— 这样某行被隐藏（GONE）时，
+  它的分割线会一起消失，不会留下一根悬空的线。
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#00000000" />
+        </shape>
+    </item>
+    <item
+        android:gravity="bottom"
+        android:height="1dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#FFEDE7DC" />
+        </shape>
+    </item>
+</layer-list>

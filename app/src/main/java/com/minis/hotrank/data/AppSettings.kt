@@ -5,8 +5,6 @@ import android.content.Context
 /** 详情页的呈现形式，可在设置里切换。 */
 enum class DetailForm { FULLSCREEN, SHEET }
 
-enum class StartPage { AGGREGATE, LAST_USED }
-
 /**
  * 通用设置。跟订阅分开存 —— 订阅是有业务含义的数据，设置只是偏好。
  */

@@ -326,6 +326,33 @@ tools/                           开发期工具，不进 APK
 
 ---
 
+## 崩溃自查
+
+这是个没有图形调试环境的项目（云端构建、只在手机安装），运行时崩溃除了"闪退"拿不到任何信息。
+所以内置了一套现场记录：
+
+`CrashLog` 接管未捕获异常 → 把堆栈写进 SharedPreferences → 下次启动时
+`MainActivity` 读出来，用 `CrashScreen` 展示（文本可长按选中复制，也有「复制错误信息」按钮）。
+
+页面上会带上版本号、Android 版本、机型，方便定位。只保留最后一次崩溃。
+点「继续使用」后本次会话不再打扰。
+
+### 已知并修掉的一处崩溃
+
+`HotScreen` 里翻页时联动 tab 滚动：
+
+```kotlin
+LaunchedEffect(pagerState.currentPage) { tabListState.animateScrollToItem(...) }
+```
+
+`animateScrollToItem` 在列表尚未完成测量时会抛异常。首屏因为已经在 0 位置、
+内部直接返回，所以不崩；**一切到别的页就炸** —— 表现为"第一页正常，切页闪退"。
+
+修法是范围检查 + 异常兜底，并且**显式重抛 `CancellationException`**
+（用 `runCatching` 会连协程取消一起吞掉，破坏切页时的取消语义）。
+
+---
+
 ## 数据源
 
 | 平台 | 主源 uapis.cn | 备用源 60s.viki.moe |

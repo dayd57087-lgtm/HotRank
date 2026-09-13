@@ -42,7 +42,11 @@ class HotRepository(context: Context) {
     private val prefs = appContext.getSharedPreferences("hot_cache", Context.MODE_PRIVATE)
     private val seenStore = SeenHotStore(appContext)
 
-    suspend fun load(force: Boolean): HotFeed = coroutineScope {
+    /**
+     * @param includeTimeline 是否同时拉全网热点。
+     *   小组件只关心综合榜排序结果，不需要新闻，传 false 可以省一次网络请求。
+     */
+    suspend fun load(force: Boolean, includeTimeline: Boolean = true): HotFeed = coroutineScope {
         val results = Platform.entries
             .map { platform -> async(Dispatchers.IO) { platform to loadOne(platform, force) } }
             .awaitAll()
@@ -73,6 +77,8 @@ class HotRepository(context: Context) {
         // 时间线：记录当前榜 -> 拉新闻 -> 交叉关联
         val timelineDeferred = async(Dispatchers.IO) {
             if (byPlatform.isNotEmpty()) seenStore.record(byPlatform)
+            if (!includeTimeline) return@async null
+
             val live = seenStore.liveIndex(byPlatform)
             val cutoff = System.currentTimeMillis() - DAY
 

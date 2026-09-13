@@ -143,6 +143,11 @@ private fun DetailBody(data: DetailData, onDismiss: () -> Unit, heroHeight: andr
 
             StatsRow(data)
 
+            // 多站同榜时才做对比 —— 只有一个平台就没有可对比的东西
+            if (data.corroboration > 1) {
+                PlatformCompare(data.members)
+            }
+
             data.heatIndex?.let { heat ->
                 Spacer(Modifier.height(15.dp))
                 HeatPanel(heat, data.corroboration)
@@ -283,6 +288,107 @@ private fun StatsRow(data: DetailData) {
                 Text(
                     text = label,
                     fontSize = 9.5.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 各平台视角对比。
+ *
+ * 这里有一个刻意的设计决定：**横向条画的是名次，不是热度**。
+ *
+ * 因为热度值各平台量纲不同（微博 183 万、知乎「3504 万热度」、B站「139 万播放」、头条干脆不给），
+ * 拿它们画同一条轴是错的。而**名次在每个平台内部口径一致** ——
+ * 第 1 名就是那个平台的第 1 名，可以横着比。
+ *
+ * 热度数字仍然显示，但只作为参考信息，不参与长度。
+ * 这个取舍本身就是整个 App 核心算法思路的直观呈现。
+ */
+@Composable
+private fun PlatformCompare(members: List<HotItem>) {
+    val ordered = members.sortedBy { it.rank }
+    val worstRank = ordered.maxOf { it.rank }.coerceAtLeast(1)
+
+    Spacer(Modifier.height(18.dp))
+
+    Text(
+        text = "各平台视角对比",
+        fontSize = 9.5.sp,
+        fontWeight = FontWeight.Black,
+        letterSpacing = 1.6.sp,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Spacer(Modifier.height(3.dp))
+    Text(
+        text = "条长表示名次（各平台内可比）；热度单位各不相同，仅供参照",
+        fontSize = 10.sp,
+        lineHeight = 15.sp,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+
+    Spacer(Modifier.height(11.dp))
+
+    Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        ordered.forEach { item ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier
+                        .size(7.dp)
+                        .clip(CircleShape)
+                        .background(Color(item.platform.argb))
+                )
+                Spacer(Modifier.width(6.dp))
+
+                Text(
+                    text = item.platform.label,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.width(34.dp),
+                )
+
+                Text(
+                    text = item.platform.nature,
+                    fontSize = 9.5.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.width(48.dp),
+                )
+
+                // 名次越好条越长：第 1 名满格
+                val fraction = (1f - (item.rank - 1).toFloat() / worstRank).coerceIn(0.08f, 1f)
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .height(5.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth(fraction)
+                            .height(5.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(
+                                if (item.rank == 1) HeatRed
+                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                            )
+                    )
+                }
+
+                Spacer(Modifier.width(8.dp))
+
+                Text(
+                    text = buildString {
+                        append("#")
+                        append(item.rank)
+                        item.hotLabel?.let { append(" · ").append(it) }
+                    },
+                    fontSize = 9.5.sp,
+                    fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }

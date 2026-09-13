@@ -37,6 +37,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -94,6 +95,7 @@ fun HotScreen(vm: HotViewModel = viewModel()) {
     var detail by remember { mutableStateOf<com.minis.hotrank.model.DetailData?>(null) }
     var showSubscribe by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    var searching by remember { mutableStateOf(false) }
 
     // 翻页时把选中的 tab 滚进可视区，否则滑到 B站 时 tab 还停在左边。
     //
@@ -115,7 +117,9 @@ fun HotScreen(vm: HotViewModel = viewModel()) {
     }
 
     // 详情是全屏页时，系统返回键要能关掉它
-    BackHandler(enabled = detail != null) { detail = null }
+    BackHandler(enabled = detail != null && !searching) { detail = null }
+    // 搜索层最上层，返回键优先关搜索
+    BackHandler(enabled = searching) { searching = false }
 
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
 
@@ -124,6 +128,7 @@ fun HotScreen(vm: HotViewModel = viewModel()) {
             Header(
                 state = state,
                 timelineMode = pagerState.currentPage == TIMELINE_PAGE,
+                onSearch = { searching = true },
                 onSettings = { showSettings = true },
             )
 
@@ -193,6 +198,24 @@ fun HotScreen(vm: HotViewModel = viewModel()) {
                 .navigationBarsPadding()
                 .padding(18.dp),
         )
+
+        // 搜索层：放最后声明，才能盖住上面的列表和悬浮按钮。
+        // 用 if 整体替换而不是叠加透明度 —— 搜索时不需要看到底下的榜单。
+        if (searching) {
+            SearchScreen(
+                state = state,
+                onClose = { searching = false },
+                onOpenEvent = {
+                    searching = false
+                    detail = it.toDetail()
+                },
+                onOpenItem = {
+                    searching = false
+                    detail = it.toDetail()
+                },
+                onOpenNews = { openNews(context, it.url) },
+            )
+        }
     }
 
     // 详情页按设置决定形态
@@ -230,7 +253,12 @@ fun HotScreen(vm: HotViewModel = viewModel()) {
 // ---------------------------------------------------------------- 头部
 
 @Composable
-private fun Header(state: HotUiState, timelineMode: Boolean, onSettings: () -> Unit) {
+private fun Header(
+    state: HotUiState,
+    timelineMode: Boolean,
+    onSearch: () -> Unit,
+    onSettings: () -> Unit,
+) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -246,6 +274,14 @@ private fun Header(state: HotUiState, timelineMode: Boolean, onSettings: () -> U
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
             )
+            IconButton(onClick = onSearch, modifier = Modifier.size(34.dp)) {
+                Icon(
+                    Icons.Filled.Search,
+                    contentDescription = "搜索",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(19.dp),
+                )
+            }
             IconButton(onClick = onSettings, modifier = Modifier.size(34.dp)) {
                 Icon(
                     Icons.Filled.Settings,

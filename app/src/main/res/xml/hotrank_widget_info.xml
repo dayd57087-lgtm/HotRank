@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  小组件声明。
+  - updatePeriodMillis 最小 30 分钟，这只是让系统定期触发 onUpdate 重绘（读本地缓存，不发网络）；
+    真正的数据刷新由 WidgetWorker 在后台做。
+  - 只开横向 resize：高度固定成 3 格，5 行内容不会被压扁裁切。
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="150dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="3"
+    android:updatePeriodMillis="1800000"
+    android:initialLayout="@layout/widget_hotrank"
+    android:previewLayout="@layout/widget_hotrank"
+    android:description="@string/widget_description"
+    android:resizeMode="horizontal"
+    android:widgetCategory="home_screen" />

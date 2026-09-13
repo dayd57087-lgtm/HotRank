@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  小组件布局。只能使用 RemoteViews 支持的视图：
+  FrameLayout / LinearLayout / RelativeLayout / GridLayout / TextView / ImageView /
+  Button / ImageButton / ProgressBar 等，不能用 Compose、不能用自定义 View。
+
+  视觉上跟随 App 的编辑杂志风：暖纸底 + 黑字 + 只有第 1 名用品牌红。
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_bg"
+    android:paddingStart="14dp"
+    android:paddingEnd="14dp"
+    android:paddingTop="11dp"
+    android:paddingBottom="9dp">
+
+    <!-- 头部：整块可点，进 App；右侧刷新按钮 -->
+    <LinearLayout
+        android:id="@+id/widget_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="7dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="热榜聚合"
+            android:textColor="#FF141210"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-black" />
+
+        <TextView
+            android:id="@+id/widget_updated"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text=""
+            android:textColor="#FF9C9385"
+            android:textSize="10sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <ImageView
+            android:id="@+id/widget_refresh"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/ic_widget_refresh"
+            android:contentDescription="刷新" />
+    </LinearLayout>
+
+    <!--
+      分割线用 TextView 而不是 <View> —— 裸 View 不在 RemoteViews 支持的视图白名单里，
+      inflate 时会失败。TextView 是白名单内的，用背景色画线即可。
+    -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="1.5dp"
+        android:background="#FF141210" />
+
+    <TextView
+        android:id="@+id/widget_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="16dp"
+        android:text="下拉打开 App 加载榜单"
+        android:textColor="#FF9C9385"
+        android:textSize="12sp"
+        android:gravity="center"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="3dp">
+
+        <LinearLayout
+            android:id="@+id/widget_row_1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp"
+            android:background="@drawable/widget_row_bg">
+
+            <TextView
+                android:id="@+id/widget_rank_1"
+                android:layout_width="18dp"
+                android:layout_height="wrap_content"
+                android:text="1"
+                android:textColor="#FFC4342A"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-black"
+                android:gravity="center" />
+
+            <TextView
+                android:id="@+id/widget_title_1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="7dp"
+                android:text=""
+                android:textColor="#FF141210"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/widget_badge_1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/widget_badge_bg"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
+                android:paddingTop="1dp"
+                android:paddingBottom="1dp"
+                android:text=""
+                android:textColor="#FFFFFBF9"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_row_2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp"
+            android:background="@drawable/widget_row_bg">
+
+            <TextView
+                android:id="@+id/widget_rank_2"
+                android:layout_width="18dp"
+                android:layout_height="wrap_content"
+                android:textColor="#FF9C9385"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-black"
+                android:gravity="center" />
+
+            <TextView
+                android:id="@+id/widget_title_2"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="7dp"
+                android:textColor="#FF141210"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/widget_badge_2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/widget_badge_bg"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
+                android:paddingTop="1dp"
+                android:paddingBottom="1dp"
+                android:textColor="#FFFFFBF9"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_row_3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp"
+            android:background="@drawable/widget_row_bg">
+
+            <TextView
+                android:id="@+id/widget_rank_3"
+                android:layout_width="18dp"
+                android:layout_height="wrap_content"
+                android:textColor="#FF9C9385"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-black"
+                android:gravity="center" />
+
+            <TextView
+                android:id="@+id/widget_title_3"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="7dp"
+                android:textColor="#FF141210"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/widget_badge_3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/widget_badge_bg"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
+                android:paddingTop="1dp"
+                android:paddingBottom="1dp"
+                android:textColor="#FFFFFBF9"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_row_4"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp"
+            android:background="@drawable/widget_row_bg">
+
+            <TextView
+                android:id="@+id/widget_rank_4"
+                android:layout_width="18dp"
+                android:layout_height="wrap_content"
+                android:textColor="#FF9C9385"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-black"
+                android:gravity="center" />
+
+            <TextView
+                android:id="@+id/widget_title_4"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="7dp"
+                android:textColor="#FF141210"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/widget_badge_4"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/widget_badge_bg"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
+                android:paddingTop="1dp"
+                android:paddingBottom="1dp"
+                android:textColor="#FFFFFBF9"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_row_5"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp">
+
+            <TextView
+                android:id="@+id/widget_rank_5"
+                android:layout_width="18dp"
+                android:layout_height="wrap_content"
+                android:textColor="#FF9C9385"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-black"
+                android:gravity="center" />
+
+            <TextView
+                android:id="@+id/widget_title_5"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="7dp"
+                android:textColor="#FF141210"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/widget_badge_5"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/widget_badge_bg"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
+                android:paddingTop="1dp"
+                android:paddingBottom="1dp"
+                android:textColor="#FFFFFBF9"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

@@ -24,7 +24,8 @@ data class HotItem(
 
 /**
  * packageName 用于把跳转精确限定到目标 App，避免系统弹「选择应用」。
- * 拿不准的 scheme 一律靠 PlatformLauncher 逐级尝试 + resolveActivity 探测兜底。
+ * nature 描述该平台**以什么形式**承载一个话题 —— 这是「各平台对比」的核心信息：
+ * 同一件事，微博上是话题讨论、知乎上是问答、B站上是视频，呈现方式完全不同。
  */
 enum class Platform(
     val apiId: String,
@@ -33,13 +34,14 @@ enum class Platform(
     val weight: Double,
     val packageName: String,
     val short: String,
+    val nature: String,
 ) {
-    WEIBO("weibo", "微博", 0xFFE6162D, 1.00, "com.sina.weibo", "微博"),
-    BAIDU("baidu", "百度", 0xFF2932E1, 0.95, "com.baidu.searchbox", "百度"),
-    DOUYIN("douyin", "抖音", 0xFFFE2C55, 0.95, "com.ss.android.ugc.aweme", "抖音"),
-    TOUTIAO("toutiao", "头条", 0xFFF04142, 0.90, "com.ss.android.article.news", "头条"),
-    ZHIHU("zhihu", "知乎", 0xFF0084FF, 0.88, "com.zhihu.android", "知乎"),
-    BILIBILI("bilibili", "B站", 0xFFFB7299, 0.85, "tv.danmaku.bili", "B站"),
+    WEIBO("weibo", "微博", 0xFFE6162D, 1.00, "com.sina.weibo", "微博", "话题讨论"),
+    BAIDU("baidu", "百度", 0xFF2932E1, 0.95, "com.baidu.searchbox", "百度", "资讯搜索"),
+    DOUYIN("douyin", "抖音", 0xFFFE2C55, 0.95, "com.ss.android.ugc.aweme", "抖音", "短视频"),
+    TOUTIAO("toutiao", "头条", 0xFFF04142, 0.90, "com.ss.android.article.news", "头条", "资讯报道"),
+    ZHIHU("zhihu", "知乎", 0xFF0084FF, 0.88, "com.zhihu.android", "知乎", "问答讨论"),
+    BILIBILI("bilibili", "B站", 0xFFFB7299, 0.85, "tv.danmaku.bili", "B站", "视频"),
 }
 
 /** 聚合后的「事件」：可能由多个平台的条目共同支撑。 */

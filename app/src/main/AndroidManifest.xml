@@ -51,6 +51,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+          桌面小组件。
+          exported="false"：更新广播由系统按组件名精确投递，不需要对外暴露；
+          刷新按钮用的是显式 ComponentName 的 PendingIntent，同样能在不导出的情况下收到。
+        -->
+        <receiver
+            android:name=".widget.HotRankWidget"
+            android:exported="false"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.minis.hotrank.WIDGET_REFRESH" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/hotrank_widget_info" />
+        </receiver>
     </application>
 
 </manifest>
